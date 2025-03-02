@@ -1,7 +1,8 @@
 
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Home, Briefcase, Users, Calendar, User } from "lucide-react";
+import { Menu, X, Home, Briefcase, Users, Calendar, User, LogIn } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const MainLayout = ({ children }: { children: React.ReactNode }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -43,6 +44,19 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
               ))}
             </nav>
 
+            {/* Auth Buttons - Desktop */}
+            <div className="hidden md:flex items-center space-x-4">
+              <Link to="/login">
+                <Button variant="outline" size="sm" className="flex items-center space-x-1">
+                  <LogIn className="w-4 h-4" />
+                  <span>Login</span>
+                </Button>
+              </Link>
+              <Link to="/signup">
+                <Button size="sm" className="bg-homehelp-900 hover:bg-homehelp-800">Sign Up</Button>
+              </Link>
+            </div>
+
             {/* Mobile Menu Button */}
             <button 
               className="md:hidden p-2 rounded-md text-homehelp-900"
@@ -74,6 +88,27 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
                     </Link>
                   </li>
                 ))}
+                
+                {/* Auth Buttons - Mobile */}
+                <li className="pt-2 border-t border-homehelp-100">
+                  <Link
+                    to="/login"
+                    className="flex items-center space-x-3 p-2 rounded-md text-homehelp-600 hover:bg-homehelp-50"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <LogIn className="w-5 h-5" />
+                    <span>Login</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/signup"
+                    className="block p-2 rounded-md bg-homehelp-900 text-white text-center font-medium"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Sign Up
+                  </Link>
+                </li>
               </ul>
             </nav>
           </div>

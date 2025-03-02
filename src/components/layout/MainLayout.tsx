@@ -161,7 +161,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
             </div>
           </div>
           <div className="border-t border-homehelp-800 mt-8 pt-6 text-center text-sm text-homehelp-400">
-            <p>© 2023 HomeHelp. All rights reserved.</p>
+            <p>© {new Date().getFullYear()} HomeHelp. All rights reserved.</p>
           </div>
         </div>
       </footer>

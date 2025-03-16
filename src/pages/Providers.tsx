@@ -5,81 +5,8 @@ import { Search, MapPin, Star, Phone, Calendar, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 
-// Sample providers data
-const providersData = [
-  {
-    id: 1,
-    name: "John Kamau",
-    image: "https://randomuser.me/api/portraits/men/1.jpg",
-    rating: 4.8,
-    reviews: 152,
-    location: "Nairobi, Kenya",
-    phone: "+254 712 345 678",
-    email: "john.kamau@example.com",
-    services: ["House Cleaning", "Gardening"],
-    bio: "Professional cleaner with over a decade of experience in residential and commercial cleaning services."
-  },
-  {
-    id: 2,
-    name: "Sarah Njeri",
-    image: "https://randomuser.me/api/portraits/women/2.jpg",
-    rating: 4.7,
-    reviews: 98,
-    location: "Mombasa, Kenya",
-    phone: "+254 723 456 789",
-    email: "sarah.njeri@example.com",
-    services: ["Plumbing", "Electrical"],
-    bio: "Certified plumber with expertise in both installation and repairs for residential plumbing systems."
-  },
-  {
-    id: 3,
-    name: "David Mwangi",
-    image: "https://randomuser.me/api/portraits/men/3.jpg",
-    rating: 4.9,
-    reviews: 215,
-    location: "Kisumu, Kenya",
-    phone: "+254 734 567 890",
-    email: "david.mwangi@example.com",
-    services: ["Electrical", "Furniture Assembly"],
-    bio: "Licensed electrician specialized in home electrical systems, wiring, and lighting installations."
-  },
-  {
-    id: 4,
-    name: "Mary Wanjiku",
-    image: "https://randomuser.me/api/portraits/women/4.jpg",
-    rating: 4.6,
-    reviews: 87,
-    location: "Nakuru, Kenya",
-    phone: "+254 745 678 901",
-    email: "mary.wanjiku@example.com",
-    services: ["Painting", "House Cleaning"],
-    bio: "Professional painter with skills in interior and exterior painting, color consultation, and surface preparation."
-  },
-  {
-    id: 5,
-    name: "Peter Ochieng",
-    image: "https://randomuser.me/api/portraits/men/5.jpg",
-    rating: 4.5,
-    reviews: 76,
-    location: "Eldoret, Kenya",
-    phone: "+254 756 789 012",
-    email: "peter.ochieng@example.com",
-    services: ["Gardening", "Furniture Assembly"],
-    bio: "Experienced gardener offering landscaping, garden maintenance, and plant care services."
-  },
-  {
-    id: 6,
-    name: "Jane Akinyi",
-    image: "https://randomuser.me/api/portraits/women/6.jpg",
-    rating: 4.8,
-    reviews: 124,
-    location: "Thika, Kenya",
-    phone: "+254 767 890 123",
-    email: "jane.akinyi@example.com",
-    services: ["Plumbing", "Painting"],
-    bio: "Versatile handywoman with expertise in multiple areas including plumbing and home painting."
-  },
-];
+// Import provider data
+import { providersData } from "@/data/providers";
 
 // Service filter options
 const serviceOptions = Array.from(
@@ -234,7 +161,7 @@ const Providers = () => {
                     </div>
                   </div>
                   
-                  <p className="text-homehelp-600 text-sm mb-4">{provider.bio}</p>
+                  <p className="text-homehelp-600 text-sm mb-4">{provider.bio.substring(0, 120)}...</p>
                   
                   <div className="mb-4">
                     <h4 className="text-sm font-medium mb-2">Services:</h4>

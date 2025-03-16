@@ -16,6 +16,9 @@ import SignUp from "./pages/SignUp";
 import ProviderLogin from "./pages/ProviderLogin";
 import ProviderSignUp from "./pages/ProviderSignUp";
 import NotFound from "./pages/NotFound";
+import ProviderDashboard from "./pages/provider/ProviderDashboard";
+import ProviderAppointments from "./pages/provider/ProviderAppointments";
+import ProviderSettings from "./pages/provider/ProviderSettings";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +39,12 @@ const App = () => (
           <Route path="/signup" element={<SignUp />} />
           <Route path="/provider-login" element={<ProviderLogin />} />
           <Route path="/provider-signup" element={<ProviderSignUp />} />
+          
+          {/* Provider Dashboard Routes */}
+          <Route path="/providers-dashboard" element={<ProviderDashboard />} />
+          <Route path="/providers-dashboard/appointments" element={<ProviderAppointments />} />
+          <Route path="/providers-dashboard/settings" element={<ProviderSettings />} />
+          
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

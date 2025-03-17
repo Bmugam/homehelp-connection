@@ -40,7 +40,7 @@ const App = () => (
           <Route path="/provider-login" element={<ProviderLogin />} />
           <Route path="/provider-signup" element={<ProviderSignUp />} />
           
-          {/* Provider Dashboard Routes */}
+          {/* Provider Dashboard Routes - These use their own layout component */}
           <Route path="/providers-dashboard" element={<ProviderDashboard />} />
           <Route path="/providers-dashboard/appointments" element={<ProviderAppointments />} />
           <Route path="/providers-dashboard/settings" element={<ProviderSettings />} />

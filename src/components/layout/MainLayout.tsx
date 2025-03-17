@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Home, Briefcase, Users, Calendar, User, LogIn } from "lucide-react";
+import { Menu, X, Home, Briefcase, Users, Calendar, User, LogIn, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const MainLayout = ({ children }: { children: React.ReactNode }) => {
@@ -42,6 +42,14 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
                   <span>{item.name}</span>
                 </Link>
               ))}
+              {/* Provider Dashboard Link */}
+              <Link 
+                to="/providers-dashboard"
+                className="flex items-center space-x-1 text-sm font-medium transition-colors text-homehelp-600 hover:text-homehelp-900"
+              >
+                <UserCog className="w-4 h-4" />
+                <span>Provider Dashboard</span>
+              </Link>
             </nav>
 
             {/* Auth Buttons - Desktop */}
@@ -88,6 +96,18 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
                     </Link>
                   </li>
                 ))}
+                
+                {/* Provider Dashboard Link - Mobile */}
+                <li>
+                  <Link
+                    to="/providers-dashboard"
+                    className="flex items-center space-x-3 p-2 rounded-md text-homehelp-600 hover:bg-homehelp-50"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <UserCog className="w-5 h-5" />
+                    <span>Provider Dashboard</span>
+                  </Link>
+                </li>
                 
                 {/* Auth Buttons - Mobile */}
                 <li className="pt-2 border-t border-homehelp-100">
@@ -140,6 +160,11 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
                     </Link>
                   </li>
                 ))}
+                <li>
+                  <Link to="/providers-dashboard" className="hover:text-white transition-colors">
+                    Provider Dashboard
+                  </Link>
+                </li>
               </ul>
             </div>
             <div>

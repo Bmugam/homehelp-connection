@@ -16,55 +16,32 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
+import { 
+  providersData, 
+  getProviderAppointments, 
+  getProviderCompletedJobs, 
+  getProviderEarnings, 
+  getProviderReviews 
+} from "@/data/providers";
 
 const ProviderDashboard = () => {
-  // In a real app, this would come from an API
-  const upcomingAppointments = [
-    {
-      id: 1,
-      client: "Sarah Johnson",
-      service: "Plumbing Repair",
-      date: new Date(2023, 11, 22, 10, 30),
-      status: "confirmed",
-    },
-    {
-      id: 2,
-      client: "Michael Brown",
-      service: "Electrical Installation",
-      date: new Date(2023, 11, 23, 14, 0),
-      status: "pending",
-    },
-    {
-      id: 3,
-      client: "Emma Wilson",
-      service: "Plumbing Repair",
-      date: new Date(2023, 11, 24, 9, 0),
-      status: "confirmed",
-    },
-  ];
-
-  const recentReviews = [
-    {
-      id: 1,
-      client: "David Smith",
-      rating: 5,
-      comment: "Excellent service! Very professional and thorough.",
-      date: "2 days ago",
-    },
-    {
-      id: 2,
-      client: "Jessica Lee",
-      rating: 4,
-      comment: "Great job, but arrived a bit late.",
-      date: "1 week ago",
-    },
-  ];
+  // Using provider ID 1 for demonstration - in a real app, this would come from authentication
+  const providerId = 1;
+  const provider = providersData.find(p => p.id === providerId);
+  
+  // Get data for the current provider
+  const upcomingAppointments = getProviderAppointments(providerId)
+    .filter(app => app.status === "confirmed" || app.status === "pending");
+  
+  const recentReviews = getProviderReviews(providerId);
+  const completedJobs = getProviderCompletedJobs(providerId);
+  const totalEarnings = getProviderEarnings(providerId);
 
   return (
     <ProviderDashboardLayout>
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600">Welcome back, John Doe!</p>
+        <p className="text-gray-600">Welcome back, {provider?.name || "Provider"}!</p>
       </div>
 
       {/* Stats Cards */}
@@ -74,7 +51,7 @@ const ProviderDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-500">Total Bookings</p>
-                <p className="text-3xl font-bold text-gray-900">28</p>
+                <p className="text-3xl font-bold text-gray-900">{upcomingAppointments.length + completedJobs}</p>
                 <p className="text-sm text-green-600 mt-1">+12% from last month</p>
               </div>
               <div className="bg-homehelp-100 p-3 rounded-full">
@@ -89,7 +66,7 @@ const ProviderDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-500">Total Earnings</p>
-                <p className="text-3xl font-bold text-gray-900">$1,200</p>
+                <p className="text-3xl font-bold text-gray-900">KSh {totalEarnings.toLocaleString()}</p>
                 <p className="text-sm text-green-600 mt-1">+8% from last month</p>
               </div>
               <div className="bg-green-100 p-3 rounded-full">
@@ -104,7 +81,7 @@ const ProviderDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-500">Completed Jobs</p>
-                <p className="text-3xl font-bold text-gray-900">19</p>
+                <p className="text-3xl font-bold text-gray-900">{completedJobs}</p>
                 <p className="text-sm text-green-600 mt-1">+5% from last month</p>
               </div>
               <div className="bg-blue-100 p-3 rounded-full">
@@ -119,10 +96,10 @@ const ProviderDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-500">Avg. Rating</p>
-                <p className="text-3xl font-bold text-gray-900">4.8</p>
+                <p className="text-3xl font-bold text-gray-900">{provider?.rating}</p>
                 <div className="flex text-amber-500 mt-1">
                   {[1, 2, 3, 4, 5].map((star) => (
-                    <Star key={star} className="h-4 w-4 fill-current" />
+                    <Star key={star} className={`h-4 w-4 ${star <= (provider?.rating || 0) ? "fill-current" : ""}`} />
                   ))}
                 </div>
               </div>

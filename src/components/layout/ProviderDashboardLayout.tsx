@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { Home, Calendar, Settings, Briefcase } from "lucide-react";
-import { Sheet } from "@/components/ui/sheet";
+import { Sheet, SheetTrigger } from "@/components/ui/sheet";
 import SidebarNav from "@/components/provider/navigation/SidebarNav";
 import MobileHeader from "@/components/provider/navigation/MobileHeader";
 import MobileSidebar from "@/components/provider/navigation/MobileSidebar";
@@ -33,8 +33,12 @@ const ProviderDashboardLayout = ({ children }: { children: React.ReactNode }) =>
       {/* Desktop Sidebar */}
       <SidebarNav />
 
-      {/* Mobile Sidebar */}
+      {/* Mobile Sidebar with SheetTrigger to properly wrap the DialogTrigger */}
       <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+        <SheetTrigger className="md:hidden">
+          {/* This is an invisible trigger for the sheet, actual button is in MobileHeader */}
+          <span className="sr-only">Open mobile menu</span>
+        </SheetTrigger>
         <MobileSidebar 
           navItems={navItems} 
           onCloseMobileMenu={() => setIsMobileMenuOpen(false)} 

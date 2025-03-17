@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import ProviderDashboardLayout from "@/components/layout/ProviderDashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,21 +12,17 @@ const ProviderAppointments = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<AppointmentStatus>("upcoming");
   
-  // Filter appointments based on tab and search query
   const filteredAppointments = getAppointmentsByStatus(mockAppointments, activeTab, searchQuery);
 
   const handleAccept = (id: number) => {
-    // This would update the appointment status in a real application
     console.log(`Accepting appointment ${id}`);
   };
 
   const handleDecline = (id: number) => {
-    // This would update the appointment status in a real application
     console.log(`Declining appointment ${id}`);
   };
 
   const handleComplete = (id: number) => {
-    // This would update the appointment status in a real application
     console.log(`Completing appointment ${id}`);
   };
 

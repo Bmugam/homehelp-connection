@@ -43,12 +43,12 @@ const Login = () => {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-homehelp-50 to-homehelp-100 px-4 py-12">
       <Button
-  onClick={() => navigate(-1)}
-  className="mb-4 flex items-center gap-2 text-homehelp-900 hover:text-homehelp-700"
-  variant="ghost"
+      onClick={() => navigate(-1)}
+      className="mb-4 flex items-center gap-2 text-homehelp-900 hover:text-homehelp-800"
+      variant="ghost"
 >
-  ← Back
-</Button>
+           ← Back
+      </Button>
 
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">

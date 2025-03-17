@@ -5,7 +5,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import MainLayout from "./components/layout/MainLayout";
-import ProviderDashboardLayout from "./components/layout/ProviderDashboardLayout";
 import Index from "./pages/Index";
 import Services from "./pages/Services";
 import Providers from "./pages/Providers";
@@ -41,7 +40,7 @@ const App = () => (
           <Route path="/provider-login" element={<ProviderLogin />} />
           <Route path="/provider-signup" element={<ProviderSignUp />} />
           
-          {/* Provider Dashboard Routes - These are now correctly wrapped with ProviderDashboardLayout */}
+          {/* Provider Dashboard Routes */}
           <Route path="/providers-dashboard" element={<ProviderDashboard />} />
           <Route path="/providers-dashboard/appointments" element={<ProviderAppointments />} />
           <Route path="/providers-dashboard/settings" element={<ProviderSettings />} />

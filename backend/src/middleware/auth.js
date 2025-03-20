@@ -1,40 +1,31 @@
+// middleware/auth.js
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const config = require('../config/config');
 
-// Middleware to verify token
-const verifyToken = (req, res, next) => {
-    const token = req.headers['authorization'];
-
-    if (!token) {
-        return res.status(403).send({ message: 'No token provided!' });
+module.exports = (requiredRole = null) => (req, res, next) => {
+  // Get token from header
+  const token = req.header('x-auth-token');
+  
+  // Check if no token
+  if (!token) {
+    return res.status(401).json({ message: 'No token, authorization denied' });
+  }
+  
+  try {
+    // Verify token
+    const decoded = jwt.verify(token, config.JWT_SECRET);
+    
+    // Add user from payload to request
+    req.user = decoded;
+    
+    // If a specific role is required, check the user's role
+    if (requiredRole && req.user.userType !== requiredRole) {
+      return res.status(403).json({ message: 'Access denied: insufficient permissions' });
     }
-
-    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-        if (err) {
-            return res.status(401).send({ message: 'Unauthorized!' });
-        }
-        req.userId = decoded.id;
-        next();
-    });
-};
-
-// Middleware to check if user is admin
-const isAdmin = (req, res, next) => {
-    User.findById(req.userId, (err, user) => {
-        if (err) {
-            return res.status(500).send({ message: err });
-        }
-        if (!user) {
-            return res.status(404).send({ message: 'User Not found.' });
-        }
-        if (user.role !== 'admin') {
-            return res.status(403).send({ message: 'Require Admin Role!' });
-        }
-        next();
-    });
-};
-
-module.exports = {
-    verifyToken,
-    isAdmin
+    
+    next();
+  } catch (error) {
+    console.error('Token validation error:', error);
+    res.status(401).json({ message: 'Token is not valid' });
+  }
 };

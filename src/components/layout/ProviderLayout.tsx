@@ -13,7 +13,7 @@ import {
   Bell,
   CreditCard
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/use-toast";
 
 const ProviderLayout = ({ children }: { children: React.ReactNode }) => {

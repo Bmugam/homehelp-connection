@@ -1,8 +1,9 @@
 // db/setupDatabase.js
 const mysql = require('mysql2/promise');
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const config = require('../config/config');
+
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
 // Database connection configuration using config file
 const dbConfig = {
@@ -93,9 +94,9 @@ async function createTables() {
       CREATE TABLE IF NOT EXISTS providers (
         id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL,
-        business_name VARCHAR(255) NOT NULL,
+        business_name VARCHAR(255)  NULL,
         business_description TEXT,
-        location VARCHAR(255) NOT NULL,
+        location VARCHAR(255)  NULL,
         average_rating DECIMAL(3,2) DEFAULT 0,
         review_count INT DEFAULT 0,
         verification_status ENUM('pending', 'verified', 'rejected') DEFAULT 'pending',

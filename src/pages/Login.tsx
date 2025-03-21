@@ -47,7 +47,7 @@ const Login = () => {
         className="mb-4 flex items-center gap-2 text-homehelp-900 hover:text-homehelp-700"
         variant="ghost"
       >
-        ← Back
+        ← Back Home
       </Button>
 
       <div className="w-full max-w-md">

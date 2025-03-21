@@ -44,7 +44,7 @@ const Login = () => {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-homehelp-50 to-homehelp-100 px-4 py-12">
       <Button
-        onClick={() => navigate(-1)}
+        onClick={() => navigate('/')}
         className="mb-4 flex items-center gap-2 text-homehelp-900 hover:text-homehelp-700"
         variant="ghost"
       >

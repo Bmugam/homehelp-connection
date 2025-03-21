@@ -1,4 +1,4 @@
-
+import { useAuth } from '../../contexts/AuthContext';
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { 
@@ -13,7 +13,7 @@ import {
   Bell,
   CreditCard
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/use-toast";
 
 const ProviderLayout = ({ children }: { children: React.ReactNode }) => {
@@ -21,6 +21,7 @@ const ProviderLayout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, logout } = useAuth();
 
   const navItems = [
     { name: "Dashboard", path: "/providers-dashboard", icon: LayoutDashboard },
@@ -30,14 +31,6 @@ const ProviderLayout = ({ children }: { children: React.ReactNode }) => {
     { name: "Payments", path: "/providers-dashboard/payments", icon: CreditCard },
     { name: "Settings", path: "/providers-dashboard/settings", icon: Settings },
   ];
-
-  const handleLogout = () => {
-    toast({
-      title: "Logged out successfully",
-      description: "You have been logged out of your provider account."
-    });
-    navigate("/provider-login");
-  };
 
   return (
     <div className="min-h-screen bg-homehelp-50">
@@ -72,7 +65,7 @@ const ProviderLayout = ({ children }: { children: React.ReactNode }) => {
               <Button variant="ghost" size="sm" className="text-homehelp-100 hover:text-white">
                 <Bell className="w-5 h-5" />
               </Button>
-              <Button variant="outline" size="sm" onClick={handleLogout} className="text-white border-homehelp-700 hover:bg-homehelp-800">
+              <Button variant="outline" size="sm" onClick={logout} className="text-red border-homehelp-700 hover:bg-homehelp-800">
                 <LogOut className="w-4 h-4 mr-2" />
                 Logout
               </Button>
@@ -125,7 +118,7 @@ const ProviderLayout = ({ children }: { children: React.ReactNode }) => {
                     className="w-full justify-center border-homehelp-700 text-white hover:bg-homehelp-700"
                     onClick={() => {
                       setIsMenuOpen(false);
-                      handleLogout();
+                      logout();
                     }}
                   >
                     <LogOut className="w-5 h-5 mr-2" />

@@ -1,20 +1,20 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { UserPlus, Mail, Lock, User, EyeOff, Eye, Phone, Briefcase, MapPin } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
+import { API_BASE_URL } from '../apiConfig';
 
 const ProviderSignUp = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [location, setLocation] = useState("");
-  const [services, setServices] = useState("");
-  const [bio, setBio] = useState("");
+  const [services, setServices] = useState(""); // We'll use this as business_name
+  const [bio, setBio] = useState(""); // We'll use this as business_description
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -22,7 +22,7 @@ const ProviderSignUp = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (password !== confirmPassword) {
@@ -36,26 +36,52 @@ const ProviderSignUp = () => {
     
     setIsLoading(true);
     
-    // Simulate signup process
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      // Send data to backend API
+      const response = await fetch(`${API_BASE_URL}/api/auth/register-provider`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          name, 
+          email, 
+          phone,
+          location,
+          services, // This will be used as business_name
+          bio,      // This will be used as business_description
+          password 
+        }),
+      });
       
-      // For demo purposes - in a real app, you'd register with a backend
-      if (name && email && password && services) {
+      const data = await response.json();
+      
+      if (response.ok) {
         toast({
           title: "Provider account created successfully",
           description: "Welcome to HomeHelp Provider Network!",
         });
+        
         navigate("/provider-login");
       } else {
         toast({
           variant: "destructive",
           title: "Registration failed",
-          description: "Please check your information and try again.",
+          description: data.message || "Please check your information and try again.",
         });
       }
-    }, 1500);
-  };
+    } catch (error) {
+      console.error("Registration error:", error);
+      
+      toast({
+        variant: "destructive",
+        title: "Registration failed",
+        description: "Please check your information and try again.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-homehelp-50 to-homehelp-100 px-4 py-12">
@@ -149,32 +175,34 @@ const ProviderSignUp = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="services">Services Offered</Label>
-                <div className="relative">
-                  <Briefcase className="absolute left-3 top-3 h-5 w-5 text-homehelp-400" />
-                  <Input
-                    id="services"
-                    type="text"
-                    placeholder="Plumbing, Electrical, etc."
-                    className="pl-10"
-                    value={services}
-                    onChange={(e) => setServices(e.target.value)}
-                    required
-                  />
-                </div>
-                <p className="text-xs text-homehelp-500">Separate multiple services with commas</p>
-              </div>
+  <Label htmlFor="services">Services Offered</Label>
+  <div className="relative">
+    <Briefcase className="absolute left-3 top-3 h-5 w-5 text-homehelp-400" />
+    <Input
+      id="services"
+      type="text"
+      placeholder="Plumbing, Electrical, etc."
+      className="pl-10"
+      value={services}
+      onChange={(e) => setServices(e.target.value)}
+      required
+    />
+  </div>
+  <p className="text-xs text-homehelp-500">
+    Enter services you offer, separated by commas. These will be added to your profile.
+  </p>
+</div>
 
-              <div className="space-y-2">
-                <Label htmlFor="bio">Bio</Label>
-                <Textarea 
-                  id="bio"
-                  placeholder="Tell us about your experience and expertise..."
-                  className="min-h-24"
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value)}
-                />
-              </div>
+<div className="space-y-2">
+  <Label htmlFor="bio">Business Description</Label>
+  <Textarea 
+    id="bio"
+    placeholder="Tell clients about your services, experience, and expertise..."
+    className="min-h-24"
+    value={bio}
+    onChange={(e) => setBio(e.target.value)}
+  />
+</div>
 
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>

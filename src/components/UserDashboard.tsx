@@ -8,7 +8,7 @@ import UserProfile from './user-dashboard/tabs/UserProfile';
 import UserBookings from './user-dashboard/tabs/UserBookings';
 import ServiceHistory from './user-dashboard/tabs/ServiceHistory';
 import AccountSettings from './user-dashboard/tabs/AccountSettings';
-import { BookingType, UserDetailsType } from './user-dashboard/types';
+import { BookingType, UserDetailsType, HistoryItemType } from './user-dashboard/types';
 
 const UserDashboard = () => {
   const { user } = useAuth();
@@ -20,7 +20,7 @@ const UserDashboard = () => {
     { id: 2, service: 'Plumbing Repair', provider: 'Quick Fix Plumbing', date: '2023-06-22T14:30:00', status: 'pending' }
   ];
   
-  const serviceHistory: BookingType[] = [
+  const serviceHistory: HistoryItemType[] = [
     { id: 101, service: 'Lawn Mowing', provider: 'Green Thumb', date: '2023-05-20T09:00:00', status: 'completed', rating: 5 },
     { id: 102, service: 'Electrical Work', provider: 'Power Connect', date: '2023-05-10T11:00:00', status: 'completed', rating: 4 }
   ];
@@ -31,7 +31,7 @@ const UserDashboard = () => {
     email: user?.email || 'guest@example.com',
     phone: '+254 712 345 678',
     address: '123 Main St, Nairobi, Kenya',
-    memberSince: 'June 2022',
+    memberSince: 'March 2025',
     profileCompletion: 80,
   };
 

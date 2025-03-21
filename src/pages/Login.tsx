@@ -17,7 +17,6 @@ const Login = () => {
   const location = useLocation();
   const { toast } = useToast();
   
-  // If user was redirected from another page, we'll redirect them back after login
   const from = location.state?.from?.pathname || "/";
 
   const handleSubmit = async (e) => {
@@ -27,7 +26,6 @@ const Login = () => {
     try {
       const success = await login(email, password);
       
-      // Login component doesn't need to handle navigation as it's done in AuthContext
       if (!success) {
         setIsLoading(false);
       }

@@ -1,263 +1,205 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Search, Star, Clock, Shield, ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useAuth } from "../contexts/AuthContext";
+import { Calendar, Clock, Tool, Star, ArrowRight, Search } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/card";
 
-const categories = [
-  {
-    title: "House Cleaning",
-    description: "Professional home cleaning services",
-    image: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&q=80",
-    path: "/services"
-  },
-  {
-    title: "Plumbing",
-    description: "Expert plumbing repair and installation",
-    image: "https://images.unsplash.com/photo-1609234656432-603fd648c5b9?auto=format&fit=crop&q=80",
-    path: "/services"
-  },
-  {
-    title: "Electrical",
-    description: "Certified electrical services",
-    image: "https://images.unsplash.com/photo-1621905251918-48416bd8575a?auto=format&fit=crop&q=80",
-    path: "/services"
-  },
-  {
-    title: "Gardening",
-    description: "Professional landscaping and maintenance",
-    image: "https://images.unsplash.com/photo-1599685438082-ca6d8074da65?auto=format&fit=crop&q=80",
-    path: "/services"
-  }
-];
-
-const features = [
-  {
-    icon: Search,
-    title: "Easy Search",
-    description: "Find trusted professionals in your area quickly"
-  },
-  {
-    icon: Star,
-    title: "Verified Providers",
-    description: "All service providers are thoroughly vetted"
-  },
-  {
-    icon: Clock,
-    title: "Quick Booking",
-    description: "Book services with just a few clicks"
-  },
-  {
-    icon: Shield,
-    title: "Secure Platform",
-    description: "Your data and transactions are always protected"
-  }
-];
-
-// Sample testimonials
-const testimonials = [
-  {
-    id: 1,
-    content: "HomeHelp made finding a reliable plumber so easy. The service was excellent and I've bookmarked the app for all my future home service needs.",
-    author: "David Kimani",
-    role: "Homeowner, Nairobi",
-    avatar: "https://randomuser.me/api/portraits/men/41.jpg"
-  },
-  {
-    id: 2,
-    content: "As a busy professional, I don't have time to search for quality service providers. HomeHelp solved this problem perfectly. Highly recommended!",
-    author: "Sarah Wangari",
-    role: "Business Owner, Mombasa",
-    avatar: "https://randomuser.me/api/portraits/women/63.jpg"
-  },
-  {
-    id: 3,
-    content: "The gardening service I booked through HomeHelp exceeded my expectations. The app is intuitive and the service providers are top-notch.",
-    author: "Michael Odhiambo",
-    role: "Property Manager, Kisumu",
-    avatar: "https://randomuser.me/api/portraits/men/22.jpg"
-  },
-];
-
-const Index = () => {
+const UserHome = () => {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
+  const [recentBookings, setRecentBookings] = useState([
+    {
+      id: 1,
+      service: "House Cleaning",
+      provider: "CleanPro Services",
+      date: "2023-11-15T14:00:00",
+      status: "Upcoming"
+    },
+    {
+      id: 2,
+      service: "Plumbing Repair",
+      provider: "Quick Fix Plumbing",
+      date: "2023-11-10T09:30:00",
+      status: "Completed"
+    }
+  ]);
+
+  // Quick access categories
+  const quickAccessServices = [
+    {
+      icon: Tool,
+      title: "Plumbing",
+      description: "Fix leaks, repairs, installation",
+      path: "/services"
+    },
+    {
+      icon: Calendar,
+      title: "House Cleaning",
+      description: "Regular or one-time cleaning",
+      path: "/services"
+    },
+    {
+      icon: Star,
+      title: "Electrical",
+      description: "Repairs, installation, maintenance",
+      path: "/services"
+    },
+    {
+      icon: Clock,
+      title: "Urgent Services",
+      description: "Available within 2 hours",
+      path: "/services"
+    }
+  ];
 
   return (
-    <div>
-      {/* Hero Section */}
-      <section className="pt-12 pb-32 animate-fade-in">
-        <div className="text-center max-w-3xl mx-auto px-4">
-          <h1 className="text-4xl md:text-6xl font-display font-bold text-homehelp-900 mb-6">
-            Find Trusted Home Service Professionals
-          </h1>
-          <p className="text-lg md:text-xl text-homehelp-600 mb-8">
-            Connect with verified local service providers for all your home maintenance needs
-          </p>
-          
-          {/* Search Bar */}
-          <div className="relative max-w-2xl mx-auto">
-            <input
-              type="text"
-              placeholder="What service do you need?"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-6 py-4 rounded-full border border-homehelp-200 focus:outline-none focus:ring-2 focus:ring-homehelp-500 transition-all duration-300 text-homehelp-800 bg-white shadow-lg"
-            />
-            <Link to="/services">
-              <Button className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-homehelp-900 text-white px-6 py-2 rounded-full hover:bg-homehelp-800 transition-colors duration-300">
-                Search
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Categories Section */}
-      <section className="container mx-auto px-4 py-16 animate-slide-up">
-        <h2 className="text-3xl font-display font-bold text-homehelp-900 text-center mb-4">
-          Popular Services
-        </h2>
-        <p className="text-homehelp-600 text-center max-w-2xl mx-auto mb-12">
-          Discover our most requested home services from verified professionals
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-display font-bold text-homehelp-900 mb-2">
+          Welcome back, {user?.name || "User"}
+        </h1>
+        <p className="text-homehelp-600">
+          Find and manage your home services all in one place
         </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {categories.map((category, index) => (
-            <Link to={category.path} key={index} className="group cursor-pointer">
-              <div className="relative overflow-hidden rounded-xl shadow-lg transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl">
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-black/0 z-10" />
-                <img 
-                  src={category.image} 
-                  alt={category.title}
-                  className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
-                />
-                <div className="absolute bottom-0 left-0 right-0 p-6 z-20">
-                  <h3 className="text-xl font-bold text-white mb-2">{category.title}</h3>
-                  <p className="text-white/80 text-sm">{category.description}</p>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-        <div className="text-center mt-10">
-          <Link to="/services">
-            <Button variant="outline" className="hover-lift">
-              View All Services
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
+      </div>
+
+      {/* Search Bar */}
+      <div className="relative max-w-2xl mb-10">
+        <input
+          type="text"
+          placeholder="What service do you need today?"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full px-6 py-4 rounded-lg border border-homehelp-200 focus:outline-none focus:ring-2 focus:ring-homehelp-500 transition-all duration-300 text-homehelp-800 bg-white shadow-md"
+        />
+        <Link to="/services">
+          <Button className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-homehelp-900 text-white px-6 py-2 rounded-full hover:bg-homehelp-800 transition-colors duration-300">
+            <Search className="w-4 h-4 mr-2" />
+            Search
+          </Button>
+        </Link>
+      </div>
+
+      {/* Quick Access Services */}
+      <section className="mb-10">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-display font-bold text-homehelp-900">Quick Access</h2>
+          <Link to="/services" className="text-homehelp-700 hover:text-homehelp-900 flex items-center text-sm font-medium">
+            View all services <ArrowRight className="ml-1 w-4 h-4" />
           </Link>
         </div>
-      </section>
-
-      {/* How It Works Section */}
-      <section className="py-20 bg-homehelp-50">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-display font-bold text-homehelp-900 text-center mb-4">
-            How It Works
-          </h2>
-          <p className="text-homehelp-600 text-center max-w-2xl mx-auto mb-12">
-            Getting help for your home has never been easier
-          </p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-            <div className="bg-white rounded-xl p-6 text-center shadow-md hover-lift">
-              <div className="w-12 h-12 bg-homehelp-100 rounded-full flex items-center justify-center text-homehelp-900 font-bold text-xl mx-auto mb-4">
-                1
-              </div>
-              <h3 className="text-xl font-bold text-homehelp-900 mb-2">Select a Service</h3>
-              <p className="text-homehelp-600">Browse through our wide range of professional home services</p>
-            </div>
-            
-            <div className="bg-white rounded-xl p-6 text-center shadow-md hover-lift">
-              <div className="w-12 h-12 bg-homehelp-100 rounded-full flex items-center justify-center text-homehelp-900 font-bold text-xl mx-auto mb-4">
-                2
-              </div>
-              <h3 className="text-xl font-bold text-homehelp-900 mb-2">Choose a Provider</h3>
-              <p className="text-homehelp-600">Select from our verified professionals based on ratings and reviews</p>
-            </div>
-            
-            <div className="bg-white rounded-xl p-6 text-center shadow-md hover-lift">
-              <div className="w-12 h-12 bg-homehelp-100 rounded-full flex items-center justify-center text-homehelp-900 font-bold text-xl mx-auto mb-4">
-                3
-              </div>
-              <h3 className="text-xl font-bold text-homehelp-900 mb-2">Schedule & Relax</h3>
-              <p className="text-homehelp-600">Book your appointment and let our professionals handle the rest</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="container mx-auto px-4 py-16 animate-slide-up">
-        <h2 className="text-3xl font-display font-bold text-homehelp-900 text-center mb-12">
-          Why Choose HomeHelp
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {features.map((feature, index) => (
-            <div key={index} className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow duration-300">
-              <feature.icon className="w-12 h-12 text-homehelp-600 mb-4" />
-              <h3 className="text-xl font-bold text-homehelp-900 mb-2">{feature.title}</h3>
-              <p className="text-homehelp-600">{feature.description}</p>
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {quickAccessServices.map((service, index) => (
+            <Link to={service.path} key={index}>
+              <Card className="p-5 hover:shadow-md transition-shadow duration-200 h-full">
+                <div className="flex flex-col h-full">
+                  <div className="rounded-full w-12 h-12 bg-homehelp-100 text-homehelp-900 flex items-center justify-center mb-4">
+                    <service.icon className="w-6 h-6" />
+                  </div>
+                  <h3 className="font-bold text-homehelp-900 mb-2">{service.title}</h3>
+                  <p className="text-sm text-homehelp-600 flex-grow">{service.description}</p>
+                  <Button variant="ghost" className="mt-4 text-homehelp-700 p-0 hover:text-homehelp-900 hover:bg-transparent justify-start">
+                    Book now <ArrowRight className="ml-1 w-4 h-4" />
+                  </Button>
+                </div>
+              </Card>
+            </Link>
           ))}
         </div>
       </section>
 
-      {/* Testimonials Section */}
-      <section className="py-20 bg-homehelp-50">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-display font-bold text-homehelp-900 text-center mb-4">
-            What Our Users Say
-          </h2>
-          <p className="text-homehelp-600 text-center max-w-2xl mx-auto mb-12">
-            Don't just take our word for it — hear from some of our satisfied users
-          </p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {testimonials.map((testimonial) => (
-              <div key={testimonial.id} className="bg-white rounded-xl p-6 shadow-md hover-lift">
-                <div className="flex items-center mb-4">
-                  <div className="flex text-amber-400">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="w-4 h-4 fill-current" />
-                    ))}
-                  </div>
+      {/* Recent Bookings */}
+      <section className="mb-10">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-display font-bold text-homehelp-900">Recent Bookings</h2>
+          <Link to="/bookings" className="text-homehelp-700 hover:text-homehelp-900 flex items-center text-sm font-medium">
+            View all bookings <ArrowRight className="ml-1 w-4 h-4" />
+          </Link>
+        </div>
+        {recentBookings.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {recentBookings.map((booking) => (
+              <Card key={booking.id} className="p-5">
+                <div className="flex justify-between items-start mb-3">
+                  <h3 className="font-bold text-homehelp-900">{booking.service}</h3>
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    booking.status === "Upcoming" 
+                      ? "bg-homehelp-100 text-homehelp-900" 
+                      : "bg-green-100 text-green-800"
+                  }`}>
+                    {booking.status}
+                  </span>
                 </div>
-                <p className="text-homehelp-600 mb-6 italic">"{testimonial.content}"</p>
-                <div className="flex items-center">
-                  <img 
-                    src={testimonial.avatar} 
-                    alt={testimonial.author}
-                    className="w-10 h-10 rounded-full object-cover mr-3"
-                  />
-                  <div>
-                    <h4 className="font-medium text-homehelp-900">{testimonial.author}</h4>
-                    <p className="text-sm text-homehelp-500">{testimonial.role}</p>
-                  </div>
+                <p className="text-homehelp-600 mb-2">Provider: {booking.provider}</p>
+                <p className="text-homehelp-500 text-sm mb-4">
+                  <Clock className="inline-block w-4 h-4 mr-1" />
+                  {new Date(booking.date).toLocaleString('en-US', { 
+                    dateStyle: 'medium', 
+                    timeStyle: 'short' 
+                  })}
+                </p>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm">View Details</Button>
+                  {booking.status === "Upcoming" && (
+                    <Button variant="outline" size="sm" className="border-red-300 text-red-600 hover:bg-red-50">
+                      Reschedule
+                    </Button>
+                  )}
                 </div>
-              </div>
+              </Card>
             ))}
           </div>
-        </div>
+        ) : (
+          <Card className="p-6 text-center">
+            <p className="text-homehelp-600 mb-4">You don't have any recent bookings</p>
+            <Link to="/services">
+              <Button>Book a Service</Button>
+            </Link>
+          </Card>
+        )}
       </section>
 
-      {/* CTA Section */}
-      <section className="bg-homehelp-900 text-white py-20 mt-16">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-4xl font-display font-bold mb-6">
-            Ready to get started?
-          </h2>
-          <p className="text-lg text-homehelp-100 mb-8 max-w-2xl mx-auto">
-            Join thousands of satisfied homeowners who trust HomeHelp for their home service needs
-          </p>
-          <Link to="/services">
-            <Button className="bg-white text-homehelp-900 px-8 py-3 rounded-full font-bold hover:bg-homehelp-100 transition-colors duration-300 hover-lift">
-              Find a Service Now
-            </Button>
+      {/* Recommended Providers */}
+      <section>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-display font-bold text-homehelp-900">Recommended Providers</h2>
+          <Link to="/providers" className="text-homehelp-700 hover:text-homehelp-900 flex items-center text-sm font-medium">
+            View all providers <ArrowRight className="ml-1 w-4 h-4" />
           </Link>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1, 2, 3].map((provider) => (
+            <Card key={provider} className="p-5 hover:shadow-md transition-shadow duration-200">
+              <div className="flex items-center mb-4">
+                <div className="w-14 h-14 rounded-full bg-homehelp-200 mr-4 overflow-hidden">
+                  <img 
+                    src={`https://randomuser.me/api/portraits/${provider % 2 === 0 ? 'women' : 'men'}/${provider + 20}.jpg`} 
+                    alt="Provider" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div>
+                  <h3 className="font-bold text-homehelp-900">Provider {provider}</h3>
+                  <div className="flex items-center">
+                    <div className="flex text-amber-400 mr-1">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className="w-3 h-3 fill-current" />
+                      ))}
+                    </div>
+                    <span className="text-xs text-homehelp-600">(30+ reviews)</span>
+                  </div>
+                </div>
+              </div>
+              <p className="text-sm text-homehelp-600 mb-4">Specializes in plumbing, electrical work, and general repairs with over 5 years of experience.</p>
+              <Button variant="outline" size="sm" className="w-full">View Profile</Button>
+            </Card>
+          ))}
         </div>
       </section>
     </div>
   );
 };
 
-export default Index;
+export default UserHome;

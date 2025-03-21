@@ -1,6 +1,7 @@
+
 // components/Dashboard.jsx
 import { useAuth } from '../contexts/AuthContext';
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 
 const Dashboard = () => {
   const { user, logout } = useAuth();

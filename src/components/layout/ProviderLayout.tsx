@@ -32,8 +32,6 @@ const ProviderLayout = ({ children }: { children: React.ReactNode }) => {
     { name: "Settings", path: "/providers-dashboard/settings", icon: Settings },
   ];
 
-  
-
   return (
     <div className="min-h-screen bg-homehelp-50">
       {/* Navigation */}

@@ -18,7 +18,7 @@ const servicesData = [
     id: 2,
     title: "Plumbing Services",
     description: "Expert plumbing repair and installation services for kitchens, bathrooms, and water systems throughout your home.",
-    image: "https://images.unsplash.com/photo-1609234656432-603fd648c5b9?auto=format&fit=crop&q=80",
+    image: "https://plus.unsplash.com/premium_photo-1661884973994-d7625e52631a?q=80&w=1742&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     price: "From Ksh 2,000",
     categories: ["Plumbing", "Repairs"]
   },
@@ -34,7 +34,7 @@ const servicesData = [
     id: 4,
     title: "Gardening & Landscaping",
     description: "Professional landscaping and garden maintenance services to keep your outdoor spaces beautiful and well-maintained.",
-    image: "https://images.unsplash.com/photo-1599685438082-ca6d8074da65?auto=format&fit=crop&q=80",
+    image: "https://media.istockphoto.com/id/1445233447/photo/landscape-gardener-laying-turf-for-new-lawn.webp?s=2048x2048&w=is&k=20&c=bj5aofukyrbGYYSZCIpGcn-YuCy6mYF-OBVemYeionM=",
     price: "From Ksh 1,800",
     categories: ["Gardening", "Outdoor"]
   },
@@ -42,7 +42,7 @@ const servicesData = [
     id: 5,
     title: "Painting Services",
     description: "Interior and exterior painting services with premium quality paints and professional techniques.",
-    image: "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&q=80",
+    image: "https://plus.unsplash.com/premium_photo-1683121602687-60c47b2222f0?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     price: "From Ksh 3,000",
     categories: ["Painting", "Home Improvement"]
   },
@@ -50,7 +50,7 @@ const servicesData = [
     id: 6,
     title: "Furniture Assembly",
     description: "Professional assembly of all types of furniture including beds, wardrobes, tables, and office furniture.",
-    image: "https://images.unsplash.com/photo-1558051815-0f18e64e6280?auto=format&fit=crop&q=80",
+    image: "https://plus.unsplash.com/premium_photo-1694558413342-6b430e583bb6?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     price: "From Ksh 1,200",
     categories: ["Assembly", "Furniture"]
   }

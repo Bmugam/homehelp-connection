@@ -22,7 +22,10 @@ import ProviderLayout from "./components/layout/ProviderLayout";
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import UserDashboard from './components/UserDashboard';
-import AdminDashboard from './pages/Admin/AdminDashboard';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminUsers from './pages/admin/AdminUsers';
+import AdminSettings from './pages/admin/AdminSettings';
+import AdminLayout from './pages/admin/AdminLayout';
 
 const queryClient = new QueryClient();
 
@@ -78,6 +81,8 @@ const App = () => (
               </ProtectedRoute>
             } 
           />
+          
+          {/* Provider Dashboard Routes */}
           <Route 
             path="/providers-dashboard" 
             element={
@@ -87,10 +92,36 @@ const App = () => (
             } 
           />
           <Route 
+            path="/providers-dashboard/*" 
+            element={
+              <ProtectedRoute allowedRoles={['provider']}>
+                <ProviderLayout><ProviderDashboard /></ProviderLayout>
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Admin Dashboard Routes */}
+          <Route 
             path="/admin-dashboard" 
             element={
               <ProtectedRoute allowedRoles={['admin']}>
-                <AdminDashboard />
+                <AdminLayout><AdminDashboard /></AdminLayout>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin-dashboard/users" 
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminLayout><AdminUsers /></AdminLayout>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin-dashboard/settings" 
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminLayout><AdminSettings /></AdminLayout>
               </ProtectedRoute>
             } 
           />

@@ -1,19 +1,16 @@
-
-import { useState, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Search, MapPin, Star, Phone, Calendar, Mail } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import React from 'react';
 import { Link } from "react-router-dom";
-
-// Import provider data
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Search, MapPin, Star, Phone, Calendar, Mail } from "lucide-react";
+import { CardContent } from "@/components/ui/card";
+import { useState, useEffect } from "react";
 import { providersData } from "@/data/providers";
 
-// Service filter options
 const serviceOptions = Array.from(
   new Set(providersData.flatMap(provider => provider.services))
 );
 
-// Location filter options
 const locationOptions = Array.from(
   new Set(providersData.map(provider => provider.location))
 );
@@ -24,11 +21,9 @@ const Providers = () => {
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
   const [filteredProviders, setFilteredProviders] = useState(providersData);
   
-  // Filter providers based on criteria
   useEffect(() => {
     let filtered = providersData;
     
-    // Filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(provider => 
@@ -38,14 +33,12 @@ const Providers = () => {
       );
     }
     
-    // Filter by services
     if (selectedServices.length > 0) {
       filtered = filtered.filter(provider => 
         selectedServices.some(service => provider.services.includes(service))
       );
     }
     
-    // Filter by locations
     if (selectedLocations.length > 0) {
       filtered = filtered.filter(provider => 
         selectedLocations.includes(provider.location)
@@ -55,7 +48,6 @@ const Providers = () => {
     setFilteredProviders(filtered);
   }, [searchQuery, selectedServices, selectedLocations]);
 
-  // Toggle service selection
   const toggleService = (service: string) => {
     setSelectedServices(prev => 
       prev.includes(service)
@@ -64,7 +56,6 @@ const Providers = () => {
     );
   };
   
-  // Toggle location selection
   const toggleLocation = (location: string) => {
     setSelectedLocations(prev => 
       prev.includes(location)
@@ -79,7 +70,6 @@ const Providers = () => {
         Our Service Providers
       </h1>
       
-      {/* Search bar */}
       <div className="relative max-w-2xl mx-auto mb-12">
         <input
           type="text"
@@ -91,7 +81,6 @@ const Providers = () => {
         <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-homehelp-400 w-5 h-5" />
       </div>
       
-      {/* Filters */}
       <div className="mb-8">
         <div className="flex flex-wrap gap-4 mb-6">
           <div>
@@ -134,7 +123,6 @@ const Providers = () => {
         </div>
       </div>
       
-      {/* Providers grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredProviders.length > 0 ? (
           filteredProviders.map(provider => (

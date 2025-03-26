@@ -1,7 +1,6 @@
-
 import { Link } from "react-router-dom";
 import { Search, Star, Clock, Shield, ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 
 const categories = [
   {

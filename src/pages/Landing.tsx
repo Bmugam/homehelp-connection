@@ -12,7 +12,7 @@ const categories = [
   {
     title: "Plumbing",
     description: "Expert plumbing repair and installation",
-    image: "https://plus.unsplash.com/premium_photo-1661884973994-d7625e52631a?q=80&w=1742&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    image: "https://images.unsplash.com/photo-1609234656432-603fd648c5b9?auto=format&fit=crop&q=80",
     path: "/services"
   },
   {
@@ -24,7 +24,7 @@ const categories = [
   {
     title: "Gardening",
     description: "Professional landscaping and maintenance",
-    image: "https://plus.unsplash.com/premium_photo-1680286739871-01142bc609df?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    image: "https://images.unsplash.com/photo-1599685438082-ca6d8074da65?auto=format&fit=crop&q=80",
     path: "/services"
   }
 ];

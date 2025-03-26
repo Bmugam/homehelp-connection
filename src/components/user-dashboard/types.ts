@@ -8,6 +8,10 @@ export interface BookingType {
   rating?: number;
 }
 
+export interface HistoryItemType extends BookingType {
+  rating: number;
+}
+
 export interface UserDetailsType {
   name: string;
   email: string;

@@ -4,15 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { CalendarDays, Clock } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-
-interface BookingType {
-  id: number;
-  service: string;
-  provider: string;
-  date: string;
-  status: string;
-  rating?: number;
-}
+import { BookingType } from '../types';
 
 interface DashboardOverviewProps {
   userName: string;

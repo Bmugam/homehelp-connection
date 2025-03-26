@@ -3,15 +3,7 @@ import React from 'react';
 import { CheckCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-
-interface HistoryItemType {
-  id: number;
-  service: string;
-  provider: string;
-  date: string;
-  status: string;
-  rating: number;
-}
+import { HistoryItemType } from '../types';
 
 interface ServiceHistoryProps {
   serviceHistory: HistoryItemType[];

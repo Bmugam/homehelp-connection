@@ -8,7 +8,11 @@ import UserProfile from './user-dashboard/tabs/UserProfile';
 import UserBookings from './user-dashboard/tabs/UserBookings';
 import ServiceHistory from './user-dashboard/tabs/ServiceHistory';
 import AccountSettings from './user-dashboard/tabs/AccountSettings';
-import { BookingType, UserDetailsType, HistoryItemType } from './user-dashboard/types';
+import { BookingType, UserDetailsType } from './user-dashboard/types';
+
+interface HistoryItemType extends BookingType {
+  rating: number;
+}
 
 const UserDashboard = () => {
   const { user } = useAuth();

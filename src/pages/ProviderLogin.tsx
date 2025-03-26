@@ -1,141 +1,138 @@
 
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { UserCheck, Mail, Lock, EyeOff, Eye, Briefcase } from "lucide-react";
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/components/ui/use-toast";
 
 const ProviderLogin = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { login } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setError('');
+    setLoading(true);
     
-    // Simulate login process
-    setTimeout(() => {
-      setIsLoading(false);
-      
-      // For demo purposes - in a real app, you'd validate against a backend
-      if (email && password) {
-        toast({
-          title: "Provider login successful",
-          description: "Welcome back to HomeHelp Provider Dashboard!",
-        });
-        navigate("/providers-dashboard");
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Login failed",
-          description: "Please check your credentials and try again.",
-        });
-      }
-    }, 1500);
+    try {
+      await login(email, password, 'provider');
+      navigate('/providers-dashboard');
+    } catch (err) {
+      setError('Failed to log in. Please check your credentials.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-homehelp-50 to-homehelp-100 px-4 py-12">
-      <Button
-        onClick={() => navigate(-1)}
-        className="mb-4 flex items-center gap-2 text-homehelp-900 hover:text-homehelp-700"
-        variant="ghost"
-      >
-        ← Back
-      </Button>
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
+          Service Provider Login
+        </h2>
+        <p className="mt-2 text-center text-sm text-gray-600">
+          Access your provider dashboard to manage your services
+        </p>
+      </div>
 
-      <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <Link to="/" className="inline-block">
-            <h1 className="text-3xl font-display font-bold text-homehelp-900">HomeHelp</h1>
-          </Link>
-          <p className="mt-2 text-homehelp-600">Service Provider Portal</p>
-        </div>
-
-        <div className="rounded-xl bg-white p-8 shadow-lg">
-          <div className="mb-6 flex justify-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-homehelp-100">
-              <Briefcase className="h-8 w-8 text-homehelp-900" />
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4 text-sm">
+              {error}
             </div>
-          </div>
+          )}
+          
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                Email address
+              </label>
+              <div className="mt-1">
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-homehelp-500 focus:border-homehelp-500 sm:text-sm"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+            </div>
 
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-5 w-5 text-homehelp-400" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="provider@example.com"
-                    className="pl-10"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                Password
+              </label>
+              <div className="mt-1">
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-homehelp-500 focus:border-homehelp-500 sm:text-sm"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <input
+                  id="remember-me"
+                  name="remember-me"
+                  type="checkbox"
+                  className="h-4 w-4 text-homehelp-600 focus:ring-homehelp-500 border-gray-300 rounded"
+                />
+                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
+                  Remember me
+                </label>
               </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
-                  <Link to="/provider-forgot-password" className="text-sm text-homehelp-600 hover:text-homehelp-900">
-                    Forgot password?
-                  </Link>
-                </div>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-5 w-5 text-homehelp-400" />
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    className="pl-10 pr-10"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
-                  <button
-                    type="button"
-                    className="absolute right-3 top-3 text-homehelp-400 hover:text-homehelp-600"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                  </button>
-                </div>
+              <div className="text-sm">
+                <a href="#" className="font-medium text-homehelp-600 hover:text-homehelp-500">
+                  Forgot your password?
+                </a>
               </div>
+            </div>
 
+            <div>
               <Button
                 type="submit"
-                className="w-full bg-homehelp-900 hover:bg-homehelp-800"
-                disabled={isLoading}
+                disabled={loading}
+                className="w-full flex justify-center py-2 px-4"
               >
-                {isLoading ? "Logging in..." : "Login as Provider"}
+                {loading ? 'Signing in...' : 'Sign in'}
               </Button>
             </div>
           </form>
 
-          <div className="mt-6 text-center text-sm">
-            <p className="text-homehelp-600">
-              Not registered as a provider?{" "}
-              <Link to="/provider-signup" className="font-medium text-homehelp-900 hover:underline">
-                Register as Provider
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">Don't have a provider account?</span>
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <Link
+                to="/provider-signup"
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-homehelp-800 hover:bg-homehelp-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-homehelp-500"
+              >
+                Register as a Service Provider
               </Link>
-            </p>
-          </div>
-          
-          <div className="mt-4 pt-4 border-t border-homehelp-100 text-center text-sm">
-            <p className="text-homehelp-600">
-              <Link to="/login" className="font-medium text-homehelp-900 hover:underline">
-                Customer Login
-              </Link>
-            </p>
+            </div>
           </div>
         </div>
       </div>

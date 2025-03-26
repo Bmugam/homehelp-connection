@@ -22,7 +22,7 @@ import ProviderLayout from "./components/layout/ProviderLayout";
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import UserDashboard from './components/UserDashboard';
-import AdminDashboard from './pages/Admin/AdminDashboard';
+import AdminDashboard from './pages/admin/AdminDashboard';
 
 const queryClient = new QueryClient();
 

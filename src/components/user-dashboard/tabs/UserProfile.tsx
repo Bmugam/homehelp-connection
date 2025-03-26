@@ -3,13 +3,7 @@ import React from 'react';
 import { User, Mail, Phone, MapPin } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-
-interface UserDetailsType {
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
-}
+import { UserDetailsType } from '../types';
 
 interface UserProfileProps {
   userDetails: UserDetailsType;

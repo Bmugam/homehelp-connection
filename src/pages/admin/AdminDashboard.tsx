@@ -22,12 +22,10 @@ import {
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/Button";
-import { Link, useNavigate } from "react-router-dom";
 
 const AdminDashboard = () => {
   const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const navigate = useNavigate();
   
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -51,34 +49,40 @@ const AdminDashboard = () => {
         <nav className="mt-8">
           <ul className="space-y-2 px-2">
             <li>
-              <Link to="/admin-dashboard" className="flex items-center p-3 text-white rounded-lg bg-homehelp-800">
+              <a href="/admin-dashboard" className="flex items-center p-3 text-white rounded-lg bg-homehelp-800">
                 <LayoutDashboard className="h-5 w-5" />
                 {sidebarOpen && <span className="ml-3">Dashboard</span>}
-              </Link>
+              </a>
             </li>
             <li>
-              <Link to="/admin-dashboard/users" className="flex items-center p-3 text-white hover:bg-homehelp-800 rounded-lg transition-colors">
+              <a href="#" className="flex items-center p-3 text-white hover:bg-homehelp-800 rounded-lg transition-colors">
                 <Users className="h-5 w-5" />
                 {sidebarOpen && <span className="ml-3">Users</span>}
-              </Link>
+              </a>
             </li>
             <li>
-              <Link to="/admin-dashboard/bookings" className="flex items-center p-3 text-white hover:bg-homehelp-800 rounded-lg transition-colors">
+              <a href="#" className="flex items-center p-3 text-white hover:bg-homehelp-800 rounded-lg transition-colors">
                 <Calendar className="h-5 w-5" />
                 {sidebarOpen && <span className="ml-3">Bookings</span>}
-              </Link>
+              </a>
             </li>
             <li>
-              <Link to="/admin-dashboard/reports" className="flex items-center p-3 text-white hover:bg-homehelp-800 rounded-lg transition-colors">
+              <a href="#" className="flex items-center p-3 text-white hover:bg-homehelp-800 rounded-lg transition-colors">
                 <FileText className="h-5 w-5" />
                 {sidebarOpen && <span className="ml-3">Reports</span>}
-              </Link>
+              </a>
             </li>
             <li>
-              <Link to="/admin-dashboard/settings" className="flex items-center p-3 text-white hover:bg-homehelp-800 rounded-lg transition-colors">
+              <a href="#" className="flex items-center p-3 text-white hover:bg-homehelp-800 rounded-lg transition-colors">
                 <Settings className="h-5 w-5" />
                 {sidebarOpen && <span className="ml-3">Settings</span>}
-              </Link>
+              </a>
+            </li>
+            <li>
+              <a href="#" className="flex items-center p-3 text-white hover:bg-homehelp-800 rounded-lg transition-colors">
+                <HelpCircle className="h-5 w-5" />
+                {sidebarOpen && <span className="ml-3">Help</span>}
+              </a>
             </li>
           </ul>
         </nav>

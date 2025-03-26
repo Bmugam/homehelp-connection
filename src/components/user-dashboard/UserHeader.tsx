@@ -4,7 +4,7 @@ import { Bell, User, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
-import { useMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface UserHeaderProps {
   toggleSidebar: () => void;
@@ -13,7 +13,7 @@ interface UserHeaderProps {
 
 export const UserHeader: React.FC<UserHeaderProps> = ({ toggleSidebar, sidebarOpen }) => {
   const { user } = useAuth();
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
 
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4">

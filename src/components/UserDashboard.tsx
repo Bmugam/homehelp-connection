@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import UserHeader from './user-dashboard/UserHeader';
+import { UserHeader } from './user-dashboard/UserHeader';
 import UserSidebar from './user-dashboard/UserSidebar';
 import DashboardOverview from './user-dashboard/tabs/DashboardOverview';
 import UserProfile from './user-dashboard/tabs/UserProfile';
@@ -41,7 +41,9 @@ const UserDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <UserHeader />
+      <UserHeader toggleSidebar={function (): void {
+        throw new Error('Function not implemented.');
+      } } sidebarOpen={false} />
       
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row gap-6">

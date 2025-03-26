@@ -2,11 +2,22 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "default" | "outline" | "ghost";
   size?: "sm" | "md" | "lg";
   children: React.ReactNode;
 }
+
+export const buttonVariants = {
+  default: "bg-homehelp-900 text-white hover:bg-homehelp-800",
+  outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+  ghost: "hover:bg-accent hover:text-accent-foreground",
+  sizes: {
+    sm: "h-9 px-3 text-sm",
+    md: "h-10 py-2 px-4",
+    lg: "h-11 px-8"
+  }
+};
 
 const Button: React.FC<ButtonProps> = ({
   variant = "default",

@@ -12,6 +12,7 @@ import {
   Users,
   XCircle,
 } from "lucide-react";
+import { Card } from '@/components/ui/card';
 
 const ProviderDashboard = () => {
   const { user } = useAuth();

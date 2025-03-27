@@ -42,6 +42,13 @@ The server will start on the specified port (default is 3000).
 
 ## API Endpoints
 
+- **Admin User Management**
+  - `GET /api/admin/users` - Get all users
+  - `GET /api/admin/users/:id` - Get user by ID
+  - `POST /api/admin/users` - Create a new user
+  - `PUT /api/admin/users/:id` - Update user by ID
+  - `DELETE /api/admin/users/:id` - Delete user by ID
+
 - **Authentication**
   - `POST /api/auth/login` - Log in a user
   - `POST /api/auth/register` - Register a new user

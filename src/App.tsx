@@ -22,13 +22,13 @@ import ProviderLayout from "./components/layout/ProviderLayout";
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import UserDashboard from './components/UserDashboard';
-import AdminDashboard from './pages/admin/AdminDashboard';
-import AdminDashboardLayout from './pages/admin/AdminDashboard';
-import UserManagement from './pages/admin/AdminDashboard/pages/UserManagement';
-import ProvidersManagement from './pages/admin/AdminDashboard/pages/ProvidersManagement';
-import ServicesManagement from './pages/admin/AdminDashboard/pages/ServicesManagement';
-import RoleManagement from './pages/admin/AdminDashboard/pages/RoleManagement';
-import AdminSettings from './pages/admin/AdminDashboard/pages/AdminSettings';
+import AdminDashboardLayout from './pages/Admin/AdminDashboard/AdminDashboardLayout';
+import AdminDashboard from './pages/Admin/AdminDashboard';
+import UserManagement from './pages/Admin/AdminDashboard/pages/UserManagement';
+import ProvidersManagement from './pages/Admin/AdminDashboard/pages/ProvidersManagement';
+import ServicesManagement from './pages/Admin/AdminDashboard/pages/ServicesManagement';
+import RoleManagement from './pages/Admin/AdminDashboard/pages/RoleManagement';
+import AdminSettings from './pages/Admin/AdminDashboard/pages/AdminSettings';
 
 
 const queryClient = new QueryClient();
@@ -94,8 +94,8 @@ const App = () => (
               } 
             />
             
-            {/* Admin Dashboard Routes */}
-            <Route 
+           {/* Admin Dashboard Routes */}
+           <Route 
               path="/admin-dashboard" 
               element={
                 <ProtectedRoute allowedRoles={['admin']}>
@@ -103,7 +103,7 @@ const App = () => (
                 </ProtectedRoute>
               }
             >
-              <Route index element={<AdminDashboard />} />
+             <Route index element={<AdminDashboard />} />
               <Route path="users" element={<UserManagement />} />
               <Route path="providers" element={<ProvidersManagement />} />
               <Route path="services" element={<ServicesManagement />} />

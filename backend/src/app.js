@@ -49,13 +49,16 @@ async function initializeApp() {
     res.json({ status: 'ok', message: 'HomeHelp API is running' });
   });
   
-  // Import and use route files
+  // API routes with base prefix
   app.use('/api/auth', require('./routes/authRoutes'));
-  app.use('/api/admin', adminRoutes); // Ensure this line exists
-  // app.use('/api/services', require('./routes/services'));
-  // app.use('/api/providers', require('./routes/providers'));
-  // app.use('/api/bookings', require('./routes/bookings'));
-  
+  app.use('/api/admin', adminRoutes); // Updated admin routes path
+   // Add this back after creating the file
+  // Error handling middleware
+  app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ message: 'Something went wrong!' });
+  });
+
   // Handle production
   if (config.NODE_ENV === 'production') {
     // Serve any static files from the client build directory
@@ -67,20 +70,9 @@ async function initializeApp() {
     });
   }
   
-  // Error handling middleware
-  app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({
-      error: true,
-      message: config.NODE_ENV === 'production' 
-        ? 'An error occurred' 
-        : err.message
-    });
-  });
-  
   // Start the server
   app.listen(PORT, () => {
-    console.log(`Server running on port:${PORT}`);
+    console.log(`Server running on port: ${PORT}`);
     console.log(`Environment: ${config.NODE_ENV}`);
   });
 }

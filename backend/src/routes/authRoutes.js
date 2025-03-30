@@ -2,26 +2,19 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
-const authMiddleware = require('../middleware/auth');
+const { authenticateToken } = require('../middleware/auth');
 
-// Register a new user
+// Public auth routes
 router.post('/register', authController.register);
-
-// Register a new provider
-router.post('/register-provider', authController.registerProvider);
-
-// Login user
+router.post('/register/provider', authController.registerProvider);
 router.post('/login', authController.login);
 
-// Get current user (protected route)
-router.get('/me', authMiddleware, authController.getCurrentUser);
+// Protected routes
+router.get('/me', authenticateToken, authController.getCurrentUser);
 
-// Admin route example (protected)
-router.get('/admin', authMiddleware, (req, res) => {
-  if (req.user.userType !== 'admin') {
-    return res.status(403).json({ message: 'Access denied: insufficient permissions' });
-  }
-  res.json({ message: 'Welcome to the admin area' });
+// Handle token verification
+router.get('/verify', authenticateToken, (req, res) => {
+  res.json({ valid: true, user: req.user });
 });
 
 module.exports = router;

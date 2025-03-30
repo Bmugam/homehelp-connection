@@ -44,6 +44,30 @@ api.interceptors.response.use(
   }
 );
 
+// Booking interfaces
+interface BookingCreate {
+  providerId: string;
+  serviceId: string;
+  date: string;
+  time: string;
+  notes?: string;
+}
+
+interface BookingUpdate {
+  status?: 'confirmed' | 'completed' | 'cancelled';
+  date?: string;
+  time?: string;
+  notes?: string;
+}
+
+interface Booking extends BookingCreate {
+  id: string;
+  userId: string;
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  createdAt: string;
+  updatedAt: string;
+}
+
 // API service methods
 export const apiService = {
   // Auth endpoints
@@ -72,11 +96,11 @@ export const apiService = {
 
   // Bookings endpoints
   bookings: {
-    getAll: () => api.get('/bookings'),
-    getById: (id: string) => api.get(`/bookings/${id}`),
-    create: (data: any) => api.post('/bookings', data),
-    update: (id: string, data: any) => api.put(`/bookings/${id}`, data),
-    cancel: (id: string) => api.delete(`/bookings/${id}`),
+    getAll: () => api.get<Booking[]>('/bookings'),
+    getById: (id: string) => api.get<Booking>(`/bookings/${id}`),
+    create: (data: BookingCreate) => api.post<Booking>('/bookings', data),
+    update: (id: string, data: BookingUpdate) => api.put<Booking>(`/bookings/${id}`, data),
+    cancel: (id: string) => api.delete<void>(`/bookings/${id}`),
   },
 };
 

@@ -7,13 +7,15 @@ const adminController = {
       const [clients]=await db.query('SELECT COUNT(*) as count FROM users WHERE user_type = "client"');
       const [providers] = await db.query('SELECT COUNT(*) as count FROM users WHERE user_type = "provider"');
       const [bookings] = await db.query('SELECT COUNT(*) as count FROM bookings');
+      const [services] = await db.query('SELECT COUNT(*) as count FROM services');
       
       
       res.json({
         totalUsers: users[0].count,
         totalProviders: providers[0].count,
         totalClients: clients[0].count,
-        totalBookings: bookings[0].count
+        totalBookings: bookings[0].count,
+        totalServices: services[0].count
       });
     } catch (error) {
       console.error('Get dashboard stats error:', error);

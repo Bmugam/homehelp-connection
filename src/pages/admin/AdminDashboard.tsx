@@ -40,6 +40,9 @@ interface DashboardStats {
   totalClients: number;
   clientGrowth: number;
   newClientsThisWeek: number;
+  totalServices: number;
+  serviceGrowth: number;
+  newServicesThisWeek: number;
 }
 
 interface RecentUser {
@@ -155,7 +158,7 @@ const AdminDashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-500">Total Users</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-500">Total Users <b>(Clients and Providers)</b></CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-baseline justify-between">
@@ -204,6 +207,24 @@ const AdminDashboard = () => {
             </CardContent>
             <CardFooter className="pt-0">
               <p className="text-xs text-gray-500">+{stats?.newClientsThisWeek ?? 0} new this week</p>
+            </CardFooter>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-500">Services</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-baseline justify-between">
+                <div className="text-3xl font-bold">{stats?.totalServices?.toLocaleString() ?? '0'}</div>
+                <div className={`flex items-center ${(stats?.serviceGrowth ?? 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  {(stats?.serviceGrowth ?? 0) >= 0 ? <TrendingUp className="h-4 w-4 mr-1" /> : <TrendingDown className="h-4 w-4 mr-1" />}
+                  <span className="text-xs font-medium">{`${stats?.serviceGrowth ?? 0}%`}</span>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="pt-0">
+              <p className="text-xs text-gray-500">+{stats?.newServicesThisWeek ?? 0} new this week</p>
             </CardFooter>
           </Card>
 

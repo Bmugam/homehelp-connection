@@ -59,7 +59,8 @@ export const AuthProvider = ({ children }) => {
       try {
         const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
           headers: {
-            'x-auth-token': token
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
           }
         });
 
@@ -69,7 +70,6 @@ export const AuthProvider = ({ children }) => {
           setUserType(userData.userType);
           localStorage.setItem('user', JSON.stringify(userData));
         } else {
-          // Token is invalid or expired
           logout();
         }
       } catch (error) {
@@ -101,31 +101,31 @@ export const AuthProvider = ({ children }) => {
         throw new Error(data.message || "Login failed");
       }
       
-      // Save data to state and localStorage
+      // Save data and show success message
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       setToken(data.token);
       setUser(data.user);
       setUserType(data.user.userType);
 
-      console.log('User type:', data.user.userType); // Debug log
-      
-      // Show success message
       toast({
         title: "Success",
         description: "Logged in successfully",
       });
       
-      // Redirect based on user type
-      if (data.user.userType === 'client') {
-        navigate('/userDashboard');
-      } else if (data.user.userType === 'provider') {
-        navigate('/providers-dashboard');
-      } else if (data.user.userType === 'admin') {
-        navigate('/admin-dashboard');
-      } else {
-        console.error('Unknown user type:', data.user.userType);
-        navigate('/');
+      // Directly navigate based on user type without checking current path
+      switch (data.user.userType) {
+        case 'client':
+          navigate('/userDashboard');
+          break;
+        case 'provider':
+          navigate('/providers-dashboard');
+          break;
+        case 'admin':
+          navigate('/admin-dashboard');
+          break;
+        default:
+          navigate('/');
       }
       
       return true;

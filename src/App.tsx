@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -78,7 +77,7 @@ const App = () => (
           
             {/* Dashboard Routes */}
             <Route 
-              path="/userDashboard" 
+              path="/userDashboard/*" 
               element={
                 <ProtectedRoute allowedRoles={['client']}>
                   <UserDashboard />
@@ -86,7 +85,7 @@ const App = () => (
               } 
             />
             <Route 
-              path="/providers-dashboard" 
+              path="/providers-dashboard/*" 
               element={
                 <ProtectedRoute allowedRoles={['provider']}>
                   <ProviderLayout><ProviderDashboard /></ProviderLayout>
@@ -96,7 +95,7 @@ const App = () => (
             
            {/* Admin Dashboard Routes */}
            <Route 
-              path="/admin-dashboard" 
+              path="/admin-dashboard/*" 
               element={
                 <ProtectedRoute allowedRoles={['admin']}>
                   <AdminDashboardLayout />

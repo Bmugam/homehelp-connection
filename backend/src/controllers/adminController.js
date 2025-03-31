@@ -1,400 +1,301 @@
-// controllers/adminController.js
-const bcrypt = require('bcrypt');
-
-// Users CRUD Operations
-exports.getAllUsers = async (req, res) => {
-  const db = req.app.locals.db;
-  try {
-    const [users] = await db.query(`
-      SELECT id, email, first_name, last_name, user_type, phone_number, created_at 
-      FROM users
-    `);
-    res.json(users);
-  } catch (error) {
-    console.error('Error fetching users:', error);
-    res.status(500).json({ message: 'Server error fetching users' });
-  }
-};
-
-exports.getUserById = async (req, res) => {
-  const db = req.app.locals.db;
-  const { id } = req.params;
-  try {
-    const [users] = await db.query(`
-      SELECT id, email, first_name, last_name, user_type, phone_number, created_at 
-      FROM users 
-      WHERE id = ?
-    `, [id]);
-    
-    if (users.length === 0) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    
-    res.json(users[0]);
-  } catch (error) {
-    console.error('Error fetching user:', error);
-    res.status(500).json({ message: 'Server error fetching user' });
-  }
-};
-
-exports.createUser = async (req, res) => {
-  const db = req.app.locals.db;
-  const { name, email, phone, password, userType } = req.body;
-  
-  try {
-    // Check if user already exists
-    const [existingUsers] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
-    
-    if (existingUsers.length > 0) {
-      return res.status(400).json({ message: 'User with this email already exists' });
-    }
-    
-    // Hash the password
-    const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(password, salt);
-    
-    // Split name into first and last name
-    const nameParts = name.split(' ');
-    const firstName = nameParts[0];
-    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
-    
-    // Insert user into database
-    const [result] = await db.query(
-      'INSERT INTO users (user_type, email, password_hash, phone_number, first_name, last_name) VALUES (?, ?, ?, ?, ?, ?)',
-      [userType, email, passwordHash, phone, firstName, lastName]
-    );
-    
-    // Create corresponding client/provider record if needed
-    if (userType === 'client') {
-      await db.query('INSERT INTO clients (user_id) VALUES (?)', [result.insertId]);
-    } else if (userType === 'provider') {
-      await db.query('INSERT INTO providers (user_id) VALUES (?)', [result.insertId]);
-    }
-    
-    res.status(201).json({ message: 'User created successfully', userId: result.insertId });
-  } catch (error) {
-    console.error('Error creating user:', error);
-    res.status(500).json({ message: 'Server error creating user' });
-  }
-};
-
-exports.updateUser = async (req, res) => {
-    const db = req.app.locals.db;
-    const { id } = req.params;
-    const { first_name, last_name, email, phone, userType } = req.body;
-    
+const adminController = {
+  // Dashboard stats
+  getDashboardStats: async (req, res) => {
     try {
-      // Validate required fields
-      if (!email) {
-        return res.status(400).json({ message: 'Email is required' });
-      }
-  
-      // Update user with separate first_name and last_name fields
-      const [result] = await db.query(
-        'UPDATE users SET email = ?, phone_number = ?, user_type = ?, first_name = ?, last_name = ? WHERE id = ?',
-        [email, phone || null, userType, first_name, last_name || '', id]
-      );
+      const db = req.app.locals.db;
+      const [users] = await db.query('SELECT COUNT(*) as count FROM users WHERE user_type = "client" OR user_type = "provider"');
+      const [clients]=await db.query('SELECT COUNT(*) as count FROM users WHERE user_type = "client"');
+      const [providers] = await db.query('SELECT COUNT(*) as count FROM users WHERE user_type = "provider"');
+      const [bookings] = await db.query('SELECT COUNT(*) as count FROM bookings');
+      const [services] = await db.query('SELECT COUNT(*) as count FROM services');
       
+      
+      res.json({
+        totalUsers: users[0].count,
+        totalProviders: providers[0].count,
+        totalClients: clients[0].count,
+        totalBookings: bookings[0].count,
+        totalServices: services[0].count
+      });
+    } catch (error) {
+      console.error('Get dashboard stats error:', error);
+      res.status(500).json({ message: 'Error fetching dashboard stats' });
+    }
+  },
+
+  getAllUsers: async (req, res) => {
+    try {
+      const db = req.app.locals.db;
+      const [users] = await db.query('SELECT * FROM users');
+      res.json(users);
+    } catch (error) {
+      console.error('Get all users error:', error);
+      res.status(500).json({ message: 'Error fetching users' });
+    }
+  },
+
+  getRecentUsers: async (req, res) => {
+    try {
+      const db = req.app.locals.db;
+      const [users] = await db.query(
+        'SELECT id, email, first_name, last_name, created_at FROM users ORDER BY created_at DESC LIMIT 5'
+      );
+      res.json(users);
+    } catch (error) {
+      console.error('Get recent users error:', error);
+      res.status(500).json({ message: 'Error fetching recent users' });
+    }
+  },
+
+  getAllProviders: async (req, res) => {
+    try {
+      const db = req.app.locals.db;
+      const [providers] = await db.query(`
+        SELECT u.*, p.location, p.business_description 
+        FROM users u 
+        JOIN providers p ON u.id = p.user_id 
+        WHERE u.user_type = 'provider'
+      `);
+      res.json(providers);
+    } catch (error) {
+      console.error('Get all providers error:', error);
+      res.status(500).json({ message: 'Error fetching providers' });
+    }
+  },
+
+  getAllServices: async (req, res) => {
+    try {
+      const db = req.app.locals.db;
+      const [services] = await db.query(`
+        SELECT 
+          s.*,
+          JSON_ARRAYAGG(
+            CASE 
+              WHEN p.id IS NULL THEN JSON_OBJECT()
+              ELSE JSON_OBJECT(
+                'provider_id', CAST(p.id AS CHAR),
+                'business_name', COALESCE(p.business_name, ''),
+                'provider_name', COALESCE(CONCAT(u.first_name, ' ', u.last_name), ''),
+                'location', COALESCE(p.location, ''),
+                'price', CAST(COALESCE(ps.price, 0) AS DECIMAL(10,2)),
+                'description', COALESCE(ps.description, ''),
+                'availability', COALESCE(ps.availability, ''),
+                'verification_status', COALESCE(p.verification_status, 'pending'),
+                'average_rating', CAST(COALESCE(p.average_rating, 0) AS DECIMAL(10,1)),
+                'review_count', COALESCE(p.review_count, 0)
+              )
+            END
+          ) as providers
+        FROM services s
+        LEFT JOIN provider_services ps ON s.id = ps.service_id
+        LEFT JOIN providers p ON ps.provider_id = p.id
+        LEFT JOIN users u ON p.user_id = u.id
+        GROUP BY s.id
+      `);
+
+      const formattedServices = services.map(service => ({
+        ...service,
+        providers: (service.providers || [])
+          .filter(provider => Object.keys(provider).length > 0)
+          .map(provider => ({
+            ...provider,
+            price: Number(provider.price || 0),
+            average_rating: Number(provider.average_rating || 0),
+            review_count: Number(provider.review_count || 0)
+          }))
+      }));
+
+      res.json(formattedServices);
+    } catch (error) {
+      console.error('Get all services error:', error);
+      res.status(500).json({ message: 'Error fetching services' });
+    }
+  },
+
+  // Create methods
+  createUser: async (req, res) => {
+    try {
+      const db = req.app.locals.db;
+      const { email, first_name, last_name, password, user_type } = req.body;
+      const [result] = await db.query(
+        'INSERT INTO users (email, first_name, last_name, password_hash, user_type) VALUES (?, ?, ?, ?, ?)',
+        [email, first_name, last_name, password, user_type]
+      );
+      res.status(201).json({ id: result.insertId });
+    } catch (error) {
+      console.error('Create user error:', error);
+      res.status(400).json({ message: 'Error creating user' });
+    }
+  },
+
+  // Update methods
+  updateUser: async (req, res) => {
+    try {
+      const db = req.app.locals.db;
+      const { id } = req.params;
+      const { email, first_name, last_name } = req.body;
+      const [result] = await db.query(
+        'UPDATE users SET email = ?, first_name = ?, last_name = ? WHERE id = ?',
+        [email, first_name, last_name, id]
+      );
       if (result.affectedRows === 0) {
         return res.status(404).json({ message: 'User not found' });
       }
-      
       res.json({ message: 'User updated successfully' });
     } catch (error) {
-      console.error('Error updating user:', error);
-      res.status(500).json({ message: 'Server error updating user' });
+      console.error('Update user error:', error);
+      res.status(400).json({ message: 'Error updating user' });
     }
-  };
+  },
 
-
-  
-exports.deleteUser = async (req, res) => {
-  const db = req.app.locals.db;
-  const { id } = req.params;
-  
-  try {
-    const [result] = await db.query('DELETE FROM users WHERE id = ?', [id]);
-    
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: 'User not found' });
+  getServiceById: async (req, res) => {
+    try {
+      const db = req.app.locals.db;
+      const [services] = await db.query('SELECT * FROM services WHERE id = ?', [req.params.id]);
+      if (services.length === 0) {
+        return res.status(404).json({ message: 'Service not found' });
+      }
+      res.json(services[0]);
+    } catch (error) {
+      console.error('Get service error:', error);
+      res.status(500).json({ message: 'Error fetching service' });
     }
-    
-    res.json({ message: 'User deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting user:', error);
-    res.status(500).json({ message: 'Server error deleting user' });
+  },
+
+  // Bookings
+  getAllBookings: async (req, res) => {
+    try {
+      const db = req.app.locals.db;
+      const [bookings] = await db.query(`
+        SELECT b.*, u.first_name, u.last_name, s.service_name 
+        FROM bookings b 
+        JOIN users u ON b.user_id = u.id 
+        JOIN services s ON b.service_id = s.id
+      `);
+      res.json(bookings);
+    } catch (error) {
+      console.error('Get all bookings error:', error);
+      res.status(500).json({ message: 'Error fetching bookings' });
+    }
+  },
+
+  getBookingById: async (req, res) => {
+    try {
+      const db = req.app.locals.db;
+      const [bookings] = await db.query('SELECT * FROM bookings WHERE id = ?', [req.params.id]);
+      if (bookings.length === 0) {
+        return res.status(404).json({ message: 'Booking not found' });
+      }
+      res.json(bookings[0]);
+    } catch (error) {
+      console.error('Get booking error:', error);
+      res.status(500).json({ message: 'Error fetching booking' });
+    }
+  },
+
+  // Admin activities
+  getAdminActivities: async (req, res) => {
+    try {
+      // Implement your admin activities logic here
+      const activities = []; // Replace with actual activities data
+      res.json(activities);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  },
+
+  updateProvider: async (req, res) => {
+    try {
+      const db = req.app.locals.db;
+      const { id } = req.params;
+      const { email, first_name, last_name, location, business_description } = req.body;
+      
+      await db.query('START TRANSACTION');
+      
+      const [userResult] = await db.query(
+        'UPDATE users SET email = ?, first_name = ?, last_name = ? WHERE id = ? AND user_type = "provider"',
+        [email, first_name, last_name, id]
+      );
+
+      if (userResult.affectedRows === 0) {
+        await db.query('ROLLBACK');
+        return res.status(404).json({ message: 'Provider not found' });
+      }
+
+      const [providerResult] = await db.query(
+        'UPDATE providers SET location = ?, business_description = ? WHERE user_id = ?',
+        [location, business_description, id]
+      );
+
+      await db.query('COMMIT');
+      res.json({ message: 'Provider updated successfully' });
+    } catch (error) {
+      await db.query('ROLLBACK');
+      console.error('Update provider error:', error);
+      res.status(400).json({ message: 'Error updating provider' });
+    }
+  },
+
+  // Delete methods
+  deleteUser: async (req, res) => {
+    try {
+      const db = req.app.locals.db;
+      const { id } = req.params;
+      const [result] = await db.query('DELETE FROM users WHERE id = ?', [id]);
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      res.json({ message: 'User deleted successfully' });
+    } catch (error) {
+      console.error('Delete user error:', error);
+      res.status(500).json({ message: 'Error deleting user' });
+    }
+  },
+
+  deleteProvider: async (req, res) => {
+    try {
+      const db = req.app.locals.db;
+      const { id } = req.params;
+      const [result] = await db.query('DELETE FROM providers WHERE user_id = ?', [id]);
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ message: 'Provider not found' });
+      }
+      res.json({ message: 'Provider deleted successfully' });
+    } catch (error) {
+      console.error('Delete provider error:', error);
+      res.status(500).json({ message: 'Error deleting provider' });
+    }
+  },
+
+  deleteService: async (req, res) => {
+    try {
+      const db = req.app.locals.db;
+      const { id } = req.params;
+      const [result] = await db.query('DELETE FROM services WHERE id = ?', [id]);
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ message: 'Service not found' });
+      }
+      res.json({ message: 'Service deleted successfully' });
+    } catch (error) {
+      console.error('Delete service error:', error);
+      res.status(500).json({ message: 'Error deleting service' });
+    }
+  },
+
+  deleteBooking: async (req, res) => {
+    try {
+      const db = req.app.locals.db;
+      const { id } = req.params;
+      const [result] = await db.query('DELETE FROM bookings WHERE id = ?', [id]);
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ message: 'Booking not found' });
+      }
+      res.json({ message: 'Booking deleted successfully' });
+    } catch (error) {
+      console.error('Delete booking error:', error);
+      res.status(500).json({ message: 'Error deleting booking' });
+    }
   }
 };
 
-// Providers CRUD Operations (similar structure to Users)
-exports.getAllProviders = async (req, res) => {
-  const db = req.app.locals.db;
-  try {
-    const [providers] = await db.query(`
-      SELECT p.id, u.email, u.first_name, u.last_name, 
-             p.business_name, p.location, p.verification_status, 
-             p.created_at
-      FROM providers p
-      JOIN users u ON p.user_id = u.id
-    `);
-    res.json(providers);
-  } catch (error) {
-    console.error('Error fetching providers:', error);
-    res.status(500).json({ message: 'Server error fetching providers' });
-  }
-};
-
-exports.getProviderById = async (req, res) => {
-    const db = req.app.locals.db;
-    const { id } = req.params;
-    try {
-        const [providers] = await db.query(`
-            SELECT * FROM providers WHERE id = ?
-        `, [id]);
-        
-        if (providers.length === 0) {
-            return res.status(404).json({ message: 'Provider not found' });
-        }
-        
-        res.json(providers[0]);
-    } catch (error) {
-        console.error('Error fetching provider:', error);
-        res.status(500).json({ message: 'Server error fetching provider' });
-    }
-};
-
-exports.createProvider = async (req, res) => {
-    const db = req.app.locals.db;
-    const { name, email, phone, businessName } = req.body;
-    
-    try {
-        // Insert provider into database
-        const [result] = await db.query(
-            'INSERT INTO providers (name, email, phone, business_name) VALUES (?, ?, ?, ?)',
-            [name, email, phone, businessName]
-        );
-        
-        res.status(201).json({ message: 'Provider created successfully', providerId: result.insertId });
-    } catch (error) {
-        console.error('Error creating provider:', error);
-        res.status(500).json({ message: 'Server error creating provider' });
-    }
-};
-
-exports.updateProvider = async (req, res) => {
-    const db = req.app.locals.db;
-    const { id } = req.params;
-    const { name, email, phone, businessName } = req.body;
-    
-    try {
-        const [result] = await db.query(
-            'UPDATE providers SET name = ?, email = ?, phone = ?, business_name = ? WHERE id = ?',
-            [name, email, phone, businessName, id]
-        );
-        
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ message: 'Provider not found' });
-        }
-        
-        res.json({ message: 'Provider updated successfully' });
-    } catch (error) {
-        console.error('Error updating provider:', error);
-        res.status(500).json({ message: 'Server error updating provider' });
-    }
-};
-
-exports.deleteProvider = async (req, res) => {
-    const db = req.app.locals.db;
-    const { id } = req.params;
-    
-    try {
-        const [result] = await db.query('DELETE FROM providers WHERE id = ?', [id]);
-        
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ message: 'Provider not found' });
-        }
-        
-        res.json({ message: 'Provider deleted successfully' });
-    } catch (error) {
-        console.error('Error deleting provider:', error);
-        res.status(500).json({ message: 'Server error deleting provider' });
-    }
-};
-
-exports.getAllServices = async (req, res) => {
-    const db = req.app.locals.db;
-    try {
-        const [services] = await db.query(`
-            SELECT * FROM services
-        `);
-        res.json(services);
-    } catch (error) {
-        console.error('Error fetching services:', error);
-        res.status(500).json({ message: 'Server error fetching services' });
-    }
-};
-
-exports.getServiceById = async (req, res) => {
-    const db = req.app.locals.db;
-    const { id } = req.params;
-    try {
-        const [services] = await db.query(`
-            SELECT * FROM services WHERE id = ?
-        `, [id]);
-        
-        if (services.length === 0) {
-            return res.status(404).json({ message: 'Service not found' });
-        }
-        
-        res.json(services[0]);
-    } catch (error) {
-        console.error('Error fetching service:', error);
-        res.status(500).json({ message: 'Server error fetching service' });
-    }
-};
-
-exports.createService = async (req, res) => {
-    const db = req.app.locals.db;
-    const { name, description, price } = req.body;
-    
-    try {
-        const [result] = await db.query(
-            'INSERT INTO services (name, description, price) VALUES (?, ?, ?)',
-            [name, description, price]
-        );
-        
-        res.status(201).json({ message: 'Service created successfully', serviceId: result.insertId });
-    } catch (error) {
-        console.error('Error creating service:', error);
-        res.status(500).json({ message: 'Server error creating service' });
-    }
-};
-
-exports.updateService = async (req, res) => {
-    const db = req.app.locals.db;
-    const { id } = req.params;
-    const { name, description, price } = req.body;
-    
-    try {
-        const [result] = await db.query(
-            'UPDATE services SET name = ?, description = ?, price = ? WHERE id = ?',
-            [name, description, price, id]
-        );
-        
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ message: 'Service not found' });
-        }
-        
-        res.json({ message: 'Service updated successfully' });
-    } catch (error) {
-        console.error('Error updating service:', error);
-        res.status(500).json({ message: 'Server error updating service' });
-    }
-};
-
-exports.deleteService = async (req, res) => {
-    const db = req.app.locals.db;
-    const { id } = req.params;
-    
-    try {
-        const [result] = await db.query('DELETE FROM services WHERE id = ?', [id]);
-        
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ message: 'Service not found' });
-        }
-        
-        res.json({ message: 'Service deleted successfully' });
-    } catch (error) {
-        console.error('Error deleting service:', error);
-        res.status(500).json({ message: 'Server error deleting service' });
-    }
-};
-
-exports.getAllBookings = async (req, res) => {
-    const db = req.app.locals.db;
-    try {
-        const [bookings] = await db.query(`
-            SELECT * FROM bookings
-        `);
-        res.json(bookings);
-    } catch (error) {
-        console.error('Error fetching bookings:', error);
-        res.status(500).json({ message: 'Server error fetching bookings' });
-    }
-};
-
-exports.getBookingById = async (req, res) => {
-    const db = req.app.locals.db;
-    const { id } = req.params;
-    try {
-        const [bookings] = await db.query(`
-            SELECT * FROM bookings WHERE id = ?
-        `, [id]);
-        
-        if (bookings.length === 0) {
-            return res.status(404).json({ message: 'Booking not found' });
-        }
-        
-        res.json(bookings[0]);
-    } catch (error) {
-        console.error('Error fetching booking:', error);
-        res.status(500).json({ message: 'Server error fetching booking' });
-    }
-};
-
-exports.createBooking = async (req, res) => {
-    const db = req.app.locals.db;
-    const { userId, serviceId, date, time } = req.body;
-    
-    try {
-        const [result] = await db.query(
-            'INSERT INTO bookings (user_id, service_id, date, time) VALUES (?, ?, ?, ?)',
-            [userId, serviceId, date, time]
-        );
-        
-        res.status(201).json({ message: 'Booking created successfully', bookingId: result.insertId });
-    } catch (error) {
-        console.error('Error creating booking:', error);
-        res.status(500).json({ message: 'Server error creating booking' });
-    }
-};
-
-exports.updateBooking = async (req, res) => {
-    const db = req.app.locals.db;
-    const { id } = req.params;
-    const { userId, serviceId, date, time } = req.body;
-    
-    try {
-        const [result] = await db.query(
-            'UPDATE bookings SET user_id = ?, service_id = ?, date = ?, time = ? WHERE id = ?',
-            [userId, serviceId, date, time, id]
-        );
-        
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ message: 'Booking not found' });
-        }
-        
-        res.json({ message: 'Booking updated successfully' });
-    } catch (error) {
-        console.error('Error updating booking:', error);
-        res.status(500).json({ message: 'Server error updating booking' });
-    }
-};
-
-exports.deleteBooking = async (req, res) => {
-    const db = req.app.locals.db;
-    const { id } = req.params;
-    
-    try {
-        const [result] = await db.query('DELETE FROM bookings WHERE id = ?', [id]);
-        
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ message: 'Booking not found' });
-        }
-        
-        res.json({ message: 'Booking deleted successfully' });
-    } catch (error) {
-        console.error('Error deleting booking:', error);
-        res.status(500).json({ message: 'Server error deleting booking' });
-    }
-};
+module.exports = adminController;

@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const config = require('../config/config');
 
 // Register a new client user
-exports.register = async (req, res) => {
+const register = async (req, res) => {
   const { name, email, phone, password, userType } = req.body;
   const db = req.app.locals.db;
   
@@ -43,11 +43,8 @@ exports.register = async (req, res) => {
   }
 };
 
-
-
 // Register a new provider user
-// Updated registerProvider function in authController.js
-exports.registerProvider = async (req, res) => {
+const registerProvider = async (req, res) => {
   const { name, email, phone, location, services, bio, password } = req.body;
   const pool = req.app.locals.db;
   let connection;
@@ -146,11 +143,8 @@ exports.registerProvider = async (req, res) => {
   }
 };
 
-
-
-
-// Login user (remains the same)
-exports.login = async (req, res) => {
+// Login user
+const login = async (req, res) => {
   const { email, password } = req.body;
   const db = req.app.locals.db;
   
@@ -205,8 +199,8 @@ exports.login = async (req, res) => {
   }
 };
 
-// Get current user (remains the same)
-exports.getCurrentUser = async (req, res) => {
+// Get current user
+const getCurrentUser = async (req, res) => {
   try {
     const userId = req.user.id;
     const db = req.app.locals.db;
@@ -232,4 +226,11 @@ exports.getCurrentUser = async (req, res) => {
     console.error('Get current user error:', error);
     res.status(500).json({ message: 'Server error' });
   }
+};
+
+module.exports = {
+  register,
+  registerProvider,
+  login,
+  getCurrentUser
 };

@@ -2,29 +2,38 @@
 const jwt = require('jsonwebtoken');
 const config = require('../config/config');
 
-module.exports = (requiredRole) => {
-    return (req, res, next) => {
-        const token = req.headers['authorization']?.split(' ')[1]; // Extract token from "Bearer <token>"
-        if (!token) {
-            console.error('Access token is missing');
-            return res.status(401).json({ message: 'Access token is missing' });
-        }
+exports.authenticateToken = async (req, res, next) => {
+  try {
+    const authHeader = req.headers['authorization'];
+    if (!authHeader?.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'No token provided' });
+    }
 
-        try {
-            const decoded = jwt.verify(token, config.JWT_SECRET);
-            console.log('Decoded token during validation:', decoded); // Log decoded token for debugging
-            req.user = decoded;
+    const token = authHeader.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ message: 'No token provided' });
+    }
 
-            // Check if the user has the required role
-            if (requiredRole && decoded.userType !== requiredRole) {
-                console.error(`Forbidden: User role is ${decoded.userType}, required role is ${requiredRole}`);
-                return res.status(403).json({ message: 'Forbidden: Insufficient permissions' });
-            }
+    jwt.verify(token, config.JWT_SECRET, (err, decoded) => {
+      if (err) {
+        return res.status(403).json({ message: 'Invalid token' });
+      }
+      req.user = decoded;
+      next();
+    });
+  } catch (error) {
+    console.error('Auth middleware error:', error);
+    res.status(401).json({ message: 'Authentication failed' });
+  }
+};
 
-            next();
-        } catch (error) {
-            console.error('Token validation error:', error.message);
-            return res.status(401).json({ message: 'Invalid or expired token' });
-        }
-    };
+exports.isAdmin = async (req, res, next) => {
+  try {
+    if (!req.user || req.user.userType !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin only.' });
+    }
+    next();
+  } catch (error) {
+    res.status(403).json({ message: 'Admin authorization failed' });
+  }
 };

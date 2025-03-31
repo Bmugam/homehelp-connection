@@ -13,7 +13,9 @@ interface Provider {
   last_name: string;
   email: string;
   phone: string;
-  services_count: number;
+  user_type: string;
+  location: string;
+  business_description: string;
   is_verified: boolean;
   status: 'active' | 'inactive';
 }
@@ -138,7 +140,7 @@ const ProvidersManagement = () => {
                 <tr className="border-b">
                   <th className="text-left p-3">Name</th>
                   <th className="text-left p-3">Email</th>
-                  <th className="text-left p-3">Services</th>
+                  <th className="text-left p-3">Location</th>
                   <th className="text-left p-3">Status</th>
                   <th className="text-left p-3">Actions</th>
                 </tr>
@@ -148,7 +150,7 @@ const ProvidersManagement = () => {
                   <tr key={provider.id} className="border-b hover:bg-gray-50">
                     <td className="p-3">{`${provider.first_name} ${provider.last_name}`}</td>
                     <td className="p-3">{provider.email}</td>
-                    <td className="p-3">{provider.services_count} services</td>
+                    <td className="p-3">{provider.location}</td>
                     <td className="p-3">
                       <span className={`px-2 py-1 rounded-full text-xs ${
                         provider.is_verified 

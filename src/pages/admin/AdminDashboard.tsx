@@ -37,6 +37,9 @@ interface DashboardStats {
   newProvidersThisWeek: number;
   newBookingsThisWeek: number;
   revenueDifferenceThisWeek: number;
+  totalClients: number;
+  clientGrowth: number;
+  newClientsThisWeek: number;
 }
 
 interface RecentUser {
@@ -183,6 +186,24 @@ const AdminDashboard = () => {
             </CardContent>
             <CardFooter className="pt-0">
               <p className="text-xs text-gray-500">+{stats?.newProvidersThisWeek ?? 0} new this week</p>
+            </CardFooter>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-500">Clients</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-baseline justify-between">
+                <div className="text-3xl font-bold">{stats?.totalClients?.toLocaleString() ?? '0'}</div>
+                <div className={`flex items-center ${(stats?.clientGrowth ?? 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  {(stats?.clientGrowth ?? 0) >= 0 ? <TrendingUp className="h-4 w-4 mr-1" /> : <TrendingDown className="h-4 w-4 mr-1" />}
+                  <span className="text-xs font-medium">{`${stats?.clientGrowth ?? 0}%`}</span>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="pt-0">
+              <p className="text-xs text-gray-500">+{stats?.newClientsThisWeek ?? 0} new this week</p>
             </CardFooter>
           </Card>
 

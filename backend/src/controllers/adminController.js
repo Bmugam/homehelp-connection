@@ -3,13 +3,16 @@ const adminController = {
   getDashboardStats: async (req, res) => {
     try {
       const db = req.app.locals.db;
-      const [users] = await db.query('SELECT COUNT(*) as count FROM users WHERE user_type = "client"');
+      const [users] = await db.query('SELECT COUNT(*) as count FROM users WHERE user_type = "client" OR user_type = "provider"');
+      const [clients]=await db.query('SELECT COUNT(*) as count FROM users WHERE user_type = "client"');
       const [providers] = await db.query('SELECT COUNT(*) as count FROM users WHERE user_type = "provider"');
       const [bookings] = await db.query('SELECT COUNT(*) as count FROM bookings');
+      
       
       res.json({
         totalUsers: users[0].count,
         totalProviders: providers[0].count,
+        totalClients: clients[0].count,
         totalBookings: bookings[0].count
       });
     } catch (error) {
@@ -21,7 +24,7 @@ const adminController = {
   getAllUsers: async (req, res) => {
     try {
       const db = req.app.locals.db;
-      const [users] = await db.query('SELECT * FROM users WHERE user_type = "client"');
+      const [users] = await db.query('SELECT * FROM users');
       res.json(users);
     } catch (error) {
       console.error('Get all users error:', error);
@@ -61,8 +64,46 @@ const adminController = {
   getAllServices: async (req, res) => {
     try {
       const db = req.app.locals.db;
-      const [services] = await db.query('SELECT * FROM services');
-      res.json(services);
+      const [services] = await db.query(`
+        SELECT 
+          s.*,
+          JSON_ARRAYAGG(
+            CASE 
+              WHEN p.id IS NULL THEN JSON_OBJECT()
+              ELSE JSON_OBJECT(
+                'provider_id', CAST(p.id AS CHAR),
+                'business_name', COALESCE(p.business_name, ''),
+                'provider_name', COALESCE(CONCAT(u.first_name, ' ', u.last_name), ''),
+                'location', COALESCE(p.location, ''),
+                'price', CAST(COALESCE(ps.price, 0) AS DECIMAL(10,2)),
+                'description', COALESCE(ps.description, ''),
+                'availability', COALESCE(ps.availability, ''),
+                'verification_status', COALESCE(p.verification_status, 'pending'),
+                'average_rating', CAST(COALESCE(p.average_rating, 0) AS DECIMAL(10,1)),
+                'review_count', COALESCE(p.review_count, 0)
+              )
+            END
+          ) as providers
+        FROM services s
+        LEFT JOIN provider_services ps ON s.id = ps.service_id
+        LEFT JOIN providers p ON ps.provider_id = p.id
+        LEFT JOIN users u ON p.user_id = u.id
+        GROUP BY s.id
+      `);
+
+      const formattedServices = services.map(service => ({
+        ...service,
+        providers: (service.providers || [])
+          .filter(provider => Object.keys(provider).length > 0)
+          .map(provider => ({
+            ...provider,
+            price: Number(provider.price || 0),
+            average_rating: Number(provider.average_rating || 0),
+            review_count: Number(provider.review_count || 0)
+          }))
+      }));
+
+      res.json(formattedServices);
     } catch (error) {
       console.error('Get all services error:', error);
       res.status(500).json({ message: 'Error fetching services' });

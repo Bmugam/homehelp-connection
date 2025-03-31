@@ -62,6 +62,7 @@ interface AdminActivity {
 const AdminDashboard = () => {
   const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Fetch dashboard statistics with error handling
   const { data: stats, isLoading: statsLoading, error: statsError } = useQuery({
@@ -99,8 +100,28 @@ const AdminDashboard = () => {
     }
   });
 
+  // Filter function for users with enhanced null checks
+  const filteredUsers = (recentUsers || [])?.filter(user => 
+    !searchQuery ? true : (
+      (user?.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+      (user?.email?.toLowerCase() || '').includes(searchQuery.toLowerCase())
+    )
+  );
+
+  // Filter function for activities with enhanced null checks
+  const filteredActivities = (activities || [])?.filter(activity =>
+    !searchQuery ? true : (
+      (activity?.action?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+      (activity?.adminName?.toLowerCase() || '').includes(searchQuery.toLowerCase())
+    )
+  );
+
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
+  };
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
   };
 
   if (statsLoading || usersLoading || activitiesLoading) {
@@ -130,8 +151,10 @@ const AdminDashboard = () => {
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
               <Input
                 type="search"
-                placeholder="Search..."
+                placeholder="Search users and activities..."
                 className="pl-10 w-64"
+                value={searchQuery}
+                onChange={handleSearch}
               />
             </div>
 
@@ -277,7 +300,7 @@ const AdminDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {recentUsers?.map((user) => (
+                {filteredUsers?.map((user) => (
                   <div key={user.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg">
                     <div className="flex items-center space-x-3">
                       <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
@@ -296,7 +319,7 @@ const AdminDashboard = () => {
               </div>
             </CardContent>
             <CardFooter className="flex justify-between">
-              <p className="text-sm text-gray-500">Showing {recentUsers?.length} of 100 users</p>
+              <p className="text-sm text-gray-500">Showing {filteredUsers?.length} of 100 users</p>
               <Button variant="outline" size="sm">
                 View All
                 <ArrowUpRight className="ml-2 h-4 w-4" />
@@ -312,7 +335,7 @@ const AdminDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {activities?.map((activity) => (
+                {filteredActivities?.map((activity) => (
                   <div key={activity.id} className="flex items-start space-x-3">
                     <div className="flex-shrink-0 h-8 w-8 rounded-full bg-homehelp-100 flex items-center justify-center mt-1">
                       <Settings className="h-4 w-4 text-homehelp-600" />

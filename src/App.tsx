@@ -29,7 +29,6 @@ import ServicesManagement from './pages/Admin/AdminDashboard/pages/ServicesManag
 import RoleManagement from './pages/Admin/AdminDashboard/pages/RoleManagement';
 import AdminSettings from './pages/Admin/AdminDashboard/pages/AdminSettings';
 
-
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -46,69 +45,66 @@ const App = () => (
                 <Landing />
               </MainLayout>
             } />
-            <Route path="/home" element={
-              <ProtectedRoute allowedRoles={['client']}>
-                <MainLayout>
-                  <Index />
-                </MainLayout>
-              </ProtectedRoute>
+            <Route path="/services" element={
+              <MainLayout>
+                <Services />
+              </MainLayout>
             } />
-            <Route path="/services" element={<MainLayout><Services /></MainLayout>} />
-            <Route path="/providers" element={<MainLayout><Providers /></MainLayout>} />
-            <Route path="/providers/:id" element={<MainLayout><ProviderDetail /></MainLayout>} />
-          
-            {/* Protected Client Routes */}
-            <Route path="/bookings" element={
-              <ProtectedRoute allowedRoles={['client']}>
-                <MainLayout><Bookings /></MainLayout>
-              </ProtectedRoute>
+            <Route path="/providers" element={
+              <MainLayout>
+                <Providers />
+              </MainLayout>
             } />
-            <Route path="/profile" element={
-              <ProtectedRoute allowedRoles={['client', 'provider', 'admin']}>
-                <MainLayout><Profile /></MainLayout>
-              </ProtectedRoute>
+            <Route path="/providers/:id" element={
+              <MainLayout>
+                <ProviderDetail />
+              </MainLayout>
             } />
-          
+
             {/* Auth Routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/provider-login" element={<ProviderLogin />} />
             <Route path="/provider-signup" element={<ProviderSignUp />} />
-          
-            {/* Dashboard Routes */}
-            <Route 
-              path="/userDashboard/*" 
-              element={
-                <ProtectedRoute allowedRoles={['client']}>
-                  <UserDashboard />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/providers-dashboard/*" 
-              element={
-                <ProtectedRoute allowedRoles={['provider']}>
-                  <ProviderLayout><ProviderDashboard /></ProviderLayout>
-                </ProtectedRoute>
-              } 
-            />
-            
-           {/* Admin Dashboard Routes */}
-           <Route 
-              path="/admin-dashboard/*" 
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminDashboardLayout />
-                </ProtectedRoute>
-              }
-            >
-             <Route index element={<AdminDashboard />} />
-              <Route path="users" element={<UserManagement />} />
-              <Route path="providers" element={<ProvidersManagement />} />
-              <Route path="services" element={<ServicesManagement />} />
-              <Route path="roles" element={<RoleManagement />} />
-              <Route path="settings" element={<AdminSettings />} />
-            </Route>
+
+            {/* Protected Client Routes */}
+            <Route path="/userDashboard/*" element={
+              <ProtectedRoute allowedRoles={['client']}>
+                <UserDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/bookings" element={
+              <ProtectedRoute allowedRoles={['client']}>
+                <MainLayout>
+                  <Bookings />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
+
+            {/* Provider Routes */}
+            <Route path="/providers-dashboard/*" element={
+              <ProtectedRoute allowedRoles={['provider']}>
+                <ProviderLayout>
+                  <ProviderDashboard />
+                </ProviderLayout>
+              </ProtectedRoute>
+            } />
+
+            {/* Admin Routes */}
+            <Route path="/admin-dashboard/*" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminDashboardLayout>
+                  <Routes>
+                    <Route index element={<AdminDashboard />} />
+                    <Route path="users" element={<UserManagement />} />
+                    <Route path="providers" element={<ProvidersManagement />} />
+                    <Route path="services" element={<ServicesManagement />} />
+                    <Route path="roles" element={<RoleManagement />} />
+                    <Route path="settings" element={<AdminSettings />} />
+                  </Routes>
+                </AdminDashboardLayout>
+              </ProtectedRoute>
+            } />
 
             {/* Catch-all Route */}
             <Route path="*" element={<NotFound />} />

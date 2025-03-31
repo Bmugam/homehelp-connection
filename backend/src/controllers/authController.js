@@ -206,7 +206,7 @@ const getCurrentUser = async (req, res) => {
     const db = req.app.locals.db;
     
     const [users] = await db.query(
-      'SELECT id, email, first_name, last_name, user_type FROM users WHERE id = ?',
+      'SELECT id, email, first_name, last_name, user_type, phone_number FROM users WHERE id = ?',
       [userId]
     );
     
@@ -220,6 +220,7 @@ const getCurrentUser = async (req, res) => {
       id: user.id,
       email: user.email,
       name: `${user.first_name} ${user.last_name}`,
+      phone: user.phone_number,
       userType: user.user_type
     });
   } catch (error) {

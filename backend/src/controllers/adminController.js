@@ -282,6 +282,31 @@ const adminController = {
     }
   },
 
+  bulkDeleteServices: async (req, res) => {
+    try {
+      const db = req.app.locals.db;
+      const { ids } = req.body;
+      
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ message: 'Invalid service IDs provided' });
+      }
+
+      const [result] = await db.query('DELETE FROM services WHERE id IN (?)', [ids]);
+      
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ message: 'No services found' });
+      }
+
+      res.json({ 
+        message: `Successfully deleted ${result.affectedRows} services`,
+        deletedCount: result.affectedRows 
+      });
+    } catch (error) {
+      console.error('Bulk delete services error:', error);
+      res.status(500).json({ message: 'Error deleting services' });
+    }
+  },
+
   deleteBooking: async (req, res) => {
     try {
       const db = req.app.locals.db;

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Service, ServiceCreateInput, ServiceWithDefaults, DEFAULT_SERVICE_VALUES } from "@/types/service";
 import { API_BASE_URL } from '../../../../apiConfig';
 
@@ -35,6 +36,7 @@ const ServicesManagement = () => {
   const [isAddServiceDialogOpen, setIsAddServiceDialogOpen] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [isProviderDialogOpen, setIsProviderDialogOpen] = useState(false);
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
 
   const [newService, setNewService] = useState<ServiceCreateInput>({
     name: '',
@@ -143,12 +145,55 @@ const ServicesManagement = () => {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (!selectedServices.length) return;
+    
+    if (!window.confirm(`Are you sure you want to delete ${selectedServices.length} services?`)) return;
+
+    try {
+      const response = await makeAuthenticatedRequest(
+        `${API_BASE_URL}/api/admin/services/bulk-delete`,
+        {
+          method: 'DELETE',
+          body: JSON.stringify({ ids: selectedServices })
+        }
+      );
+
+      if (response.ok) {
+        await fetchServices();
+        setSelectedServices([]);
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message);
+      }
+    } catch (error) {
+      console.error('Error deleting services:', error);
+      alert('Failed to delete services');
+    }
+  };
+
   const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { name, value, type } = event.target;
     setNewService(prev => ({
       ...prev,
       [name]: type === 'number' ? parseFloat(value) || 0 : value
     }));
+  };
+
+  const handleSelectService = (serviceId: string) => {
+    setSelectedServices(prev => 
+      prev.includes(serviceId)
+        ? prev.filter(id => id !== serviceId)
+        : [...prev, serviceId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedServices.length === filteredServices.length) {
+      setSelectedServices([]);
+    } else {
+      setSelectedServices(filteredServices.map(service => service.id));
+    }
   };
 
   const filteredServices = services.filter(service =>
@@ -176,93 +221,109 @@ const ServicesManagement = () => {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Services Directory</h1>
-        <Dialog open={isAddServiceDialogOpen} onOpenChange={setIsAddServiceDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Add New Service
+        <div className="flex gap-4 fixed top-4 right-6 z-50 bg-white/80 backdrop-blur-sm p-2 rounded-lg shadow-sm">
+          {selectedServices.length > 0 && (
+            <Button variant="destructive" onClick={handleBulkDelete}>
+              Delete Selected ({selectedServices.length})
             </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Add New Service</DialogTitle>
-              <DialogDescription>
-                Fill in the details to add a new service to the platform.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="name">Service Name</Label>
-                <Input
-                  id="name"
-                  name="name"
-                  value={newService.name}
-                  onChange={handleInputChange}
-                  placeholder="Enter service name"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="description">Description</Label>
-                <Input
-                  id="description"
-                  name="description"
-                  value={newService.description}
-                  onChange={handleInputChange}
-                  placeholder="Brief description of the service"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="category">Category</Label>
-                <Input
-                  id="category"
-                  name="category"
-                  value={newService.category}
-                  onChange={handleInputChange}
-                  placeholder="e.g., Cleaning, Plumbing, etc."
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+          )}
+          <Dialog open={isAddServiceDialogOpen} onOpenChange={setIsAddServiceDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="w-4 h-4 mr-2" />
+                Add New Service
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Add New Service</DialogTitle>
+                <DialogDescription>
+                  Fill in the details to add a new service to the platform.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="price">Price ($)</Label>
+                  <Label htmlFor="name">Service Name</Label>
                   <Input
-                    id="price"
-                    name="price"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={newService.price}
+                    id="name"
+                    name="name"
+                    value={newService.name}
                     onChange={handleInputChange}
+                    placeholder="Enter service name"
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="duration">Duration (minutes)</Label>
+                  <Label htmlFor="description">Description</Label>
                   <Input
-                    id="duration"
-                    name="duration"
-                    type="number"
-                    min="1"
-                    value={newService.duration}
+                    id="description"
+                    name="description"
+                    value={newService.description}
                     onChange={handleInputChange}
+                    placeholder="Brief description of the service"
                   />
                 </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="category">Category</Label>
+                  <Input
+                    id="category"
+                    name="category"
+                    value={newService.category}
+                    onChange={handleInputChange}
+                    placeholder="e.g., Cleaning, Plumbing, etc."
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="price">Price ($)</Label>
+                    <Input
+                      id="price"
+                      name="price"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={newService.price}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="duration">Duration (minutes)</Label>
+                    <Input
+                      id="duration"
+                      name="duration"
+                      type="number"
+                      min="1"
+                      value={newService.duration}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
-            <DialogFooter>
-              <Button type="submit" onClick={handleAddService}>Add Service</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              <DialogFooter>
+                <Button type="submit" onClick={handleAddService}>Add Service</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
-      <div className="mb-6">
-        <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
-          <Input
-            className="pl-10"
-            placeholder="Search services..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+      <div className="mb-6 flex justify-between items-center">
+        <div className="flex items-center gap-4">
+          <div className="relative max-w-sm">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+            <Input
+              className="pl-10"
+              placeholder="Search services..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <Checkbox 
+            checked={selectedServices.length === filteredServices.length && filteredServices.length > 0}
+            onCheckedChange={handleSelectAll}
           />
+          <span className="text-sm text-gray-500">
+            {selectedServices.length} of {filteredServices.length} selected
+          </span>
         </div>
       </div>
 
@@ -271,9 +332,20 @@ const ServicesManagement = () => {
           const price = typeof service?.price === 'number' ? service.price : 0;
           
           return (
-            <Card key={service.id} className="hover:shadow-lg transition-shadow">
+            <Card 
+              key={service.id} 
+              className={`hover:shadow-lg transition-shadow ${
+                selectedServices.includes(service.id) ? 'ring-2 ring-primary' : ''
+              }`}
+            >
               <CardHeader className="pb-3">
-                <CardTitle>{service?.name || 'Unnamed Service'}</CardTitle>
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    checked={selectedServices.includes(service.id)}
+                    onCheckedChange={() => handleSelectService(service.id)}
+                  />
+                  <CardTitle>{service?.name || 'Unnamed Service'}</CardTitle>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">

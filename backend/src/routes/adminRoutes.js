@@ -36,6 +36,7 @@ router.get('/services', asyncHandler(adminController.getAllServices));
 router.get('/services/:id', asyncHandler(adminController.getServiceById));
 router.post('/services', asyncHandler(adminController.createService));
 router.put('/services/:id', asyncHandler(adminController.updateService));
+router.delete('/services/bulk-delete', asyncHandler(adminController.bulkDeleteServices));
 router.delete('/services/:id', asyncHandler(adminController.deleteService));
 
 // Bookings CRUD Routes

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CalendarDays, Clock } from 'lucide-react';
@@ -29,16 +28,24 @@ const DashboardOverview = ({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="bg-gradient-to-br from-homehelp-600 to-homehelp-800 text-white">
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Book a Service</CardTitle>
+            <CardTitle  className="text-lg">Book a Service</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm opacity-90">Find the perfect service provider for your home needs.</p>
           </CardContent>
           <CardFooter>
             <Button 
-              variant="outline" 
+              variant="info" 
               className="w-full border-white text-white hover:bg-white hover:text-homehelp-800"
-              onClick={() => navigate('/services')}
+              onClick={() => {
+                try {
+                  navigate('/services');
+                } catch (error) {
+                  console.error('Navigation error:', error);
+                  // Fallback navigation
+                  window.location.href = '/services';
+                }
+              }}
             >
               Browse Services
             </Button>

@@ -1,7 +1,6 @@
-
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, X, Home, Briefcase, Users, Calendar, User, LogIn } from "lucide-react";
+import { Menu, X, Home, Briefcase, Users, Calendar, User, LogIn, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -11,13 +10,22 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const { user, isAuthenticated, logout } = useAuth();
 
-  const navItems = [
-    { name: "Home", path: isAuthenticated ? "/home" : "/", icon: Home },
+  // Define different nav items for authenticated and unauthenticated users
+  const publicNavItems = [
+    { name: "Home", path: "/", icon: Home },
     { name: "Services", path: "/services", icon: Briefcase },
     { name: "Providers", path: "/providers", icon: Users },
-    { name: "Bookings", path: "/bookings", icon: Calendar },
-    { name: "Profile", path: "/profile", icon: User },
   ];
+
+  const authenticatedNavItems = [
+    { name: "Dashboard", path: "/userDashboard", icon: LayoutDashboard },
+    { name: "Services", path: "/services", icon: Briefcase },
+    { name: "Providers", path: "/providers", icon: Users },
+    { name: "My Bookings", path: "/bookings", icon: Calendar },
+  ];
+
+  // Use the appropriate nav items based on authentication status
+  const navItems = isAuthenticated ? authenticatedNavItems : publicNavItems;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-homehelp-50 to-homehelp-100">
@@ -25,7 +33,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
       <header className="sticky top-0 z-50 bg-white shadow-md">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between py-4">
-            <Link to={isAuthenticated ? "/home" : "/"} className="flex items-center space-x-2">
+            <Link to={isAuthenticated ? "/userDashboard" : "/"} className="flex items-center space-x-2">
               <span className="text-2xl font-display font-bold text-homehelp-900">HomeHelp</span>
             </Link>
 

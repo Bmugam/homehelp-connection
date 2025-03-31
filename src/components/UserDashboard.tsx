@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { UserHeader } from './user-dashboard/UserHeader';
+import UserHeader from './user-dashboard/UserHeader';
 import UserSidebar from './user-dashboard/UserSidebar';
 import DashboardOverview from './user-dashboard/tabs/DashboardOverview';
 import UserProfile from './user-dashboard/tabs/UserProfile';
@@ -33,7 +33,7 @@ const UserDashboard = () => {
   const userDetails: UserDetailsType = {
     name: user?.name || 'Guest User',
     email: user?.email || 'guest@example.com',
-    phone: '+254 712 345 678',
+    phone: user?.phone ||  '+254 712 345 678',
     address: '123 Main St, Nairobi, Kenya',
     memberSince: 'March 2025',
     profileCompletion: 80,

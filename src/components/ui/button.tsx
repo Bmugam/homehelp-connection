@@ -1,8 +1,8 @@
 import React, { forwardRef } from "react";
 import { cn } from "@/lib/utils";
 
-export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "default" | "outline" | "ghost";
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: "default" | "outline" | "ghost" | "destructive" | "success" | "warning" | "info";
   size?: "sm" | "md" | "lg";
   children: React.ReactNode;
 }
@@ -11,6 +11,10 @@ export const buttonVariants = {
   default: "bg-homehelp-900 text-white hover:bg-homehelp-800",
   outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
   ghost: "hover:bg-accent hover:text-accent-foreground",
+  destructive: "bg-red-600 text-white hover:bg-red-700",
+  success: "bg-green-600 text-white hover:bg-green-700",
+  warning: "bg-yellow-500 text-white hover:bg-yellow-600",
+  info: "bg-blue-500 text-white hover:bg-blue-600",
   sizes: {
     sm: "h-9 px-3 text-sm",
     md: "h-10 py-2 px-4",
@@ -29,6 +33,10 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             "bg-homehelp-900 text-white hover:bg-homehelp-800": variant === "default",
             "border border-input bg-background hover:bg-accent hover:text-accent-foreground": variant === "outline",
             "hover:bg-accent hover:text-accent-foreground": variant === "ghost",
+            "bg-red-600 text-white hover:bg-red-700": variant === "destructive",
+            "bg-green-600 text-white hover:bg-green-700": variant === "success",
+            "bg-yellow-500 text-white hover:bg-yellow-600": variant === "warning",
+            "bg-blue-500 text-white hover:bg-blue-600": variant === "info",
           },
           {
             "h-9 px-3 text-sm": size === "sm",

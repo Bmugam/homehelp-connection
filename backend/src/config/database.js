@@ -298,17 +298,21 @@ async function setupDatabase() {
 }
 
 // Create connection pool for use in the application
+let pool;
+
 const createConnectionPool = () => {
-  return mysql.createPool({
-    host: config.DB.HOST,
-    user: config.DB.USER,
-    password: config.DB.PASSWORD,
-    database: config.DB.DATABASE,
-    port: config.DB.PORT,
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0
-  });
+  if (!pool) {
+    pool = mysql.createPool({
+      host: config.DB.HOST,
+      user: config.DB.USER,
+      password: config.DB.PASSWORD,
+      database: config.DB.DATABASE,
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0,
+    });
+  }
+  return pool;
 };
 
 module.exports = {

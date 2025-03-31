@@ -1,7 +1,7 @@
+import React from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import { Button } from "@/components/ui/button";
 
-import { Card } from "@/components/ui/card";
-import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/Button";
 import {
   BarChart,
   CalendarClock,
@@ -12,6 +12,7 @@ import {
   Users,
   XCircle,
 } from "lucide-react";
+import { Card } from '@/components/ui/card';
 
 const ProviderDashboard = () => {
   const { user } = useAuth();

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { 
@@ -10,7 +9,7 @@ import {
   Star,
   CheckCircle
 } from 'lucide-react';
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 
 const Index = () => {
   const { user } = useAuth();

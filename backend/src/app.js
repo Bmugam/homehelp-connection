@@ -7,7 +7,7 @@ const morgan = require('morgan');
 const { setupDatabase, createConnectionPool } = require('./config/database');
 const config = require('./config/config');
 require('dotenv').config();
-
+const adminRoutes = require('./routes/adminRoutes');
 
 // Initialize Express app
 const app = express();
@@ -51,6 +51,7 @@ async function initializeApp() {
   
   // Import and use route files
   app.use('/api/auth', require('./routes/authRoutes'));
+  app.use('/api/admin', adminRoutes); // Ensure this line exists
   // app.use('/api/services', require('./routes/services'));
   // app.use('/api/providers', require('./routes/providers'));
   // app.use('/api/bookings', require('./routes/bookings'));

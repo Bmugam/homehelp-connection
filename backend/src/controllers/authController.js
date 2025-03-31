@@ -155,22 +155,29 @@ exports.login = async (req, res) => {
   const db = req.app.locals.db;
   
   try {
+    console.log('Login attempt with email:', email); // Log email for debugging
+
     // Find user by email
     const [users] = await db.query(
-      'SELECT id, email, password_hash, first_name, last_name, user_type FROM users WHERE email = ?',
+      'SELECT id, email, password_hash, first_name, last_name, user_type FROM users WHERE LOWER(email) = LOWER(?)',
       [email]
     );
+
+    console.log('Database query result:', users); // Log query result for debugging
     
     if (users.length === 0) {
+      console.error('No user found with email:', email);
       return res.status(401).json({ message: 'Invalid email or password' });
     }
     
     const user = users[0];
-    
+    console.log('User found:', user); // Log user details for debugging
+
     // Check password
     const isMatch = await bcrypt.compare(password, user.password_hash);
     
     if (!isMatch) {
+      console.error('Password mismatch for email:', email);
       return res.status(401).json({ message: 'Invalid email or password' });
     }
     
@@ -181,6 +188,8 @@ exports.login = async (req, res) => {
       { expiresIn: '1d' }
     );
     
+    console.log('Generated token:', token); // Log token for debugging
+
     res.json({
       token,
       user: {

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { UserPlus, Mail, Lock, User, EyeOff, Eye, Phone, Briefcase, MapPin } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -60,7 +60,7 @@ const ProviderSignUp = () => {
           description: "Welcome to HomeHelp Provider Network!",
         });
         
-        navigate("/provider-login");
+        navigate("/login");
       } else {
         toast({
           variant: "destructive",
@@ -256,7 +256,7 @@ const ProviderSignUp = () => {
           <div className="mt-6 text-center text-sm">
             <p className="text-homehelp-600">
               Already registered as a provider?{" "}
-              <Link to="/provider-login" className="font-medium text-homehelp-900 hover:underline">
+              <Link to="/login" className="font-medium text-homehelp-900 hover:underline">
                 Login
               </Link>
             </p>

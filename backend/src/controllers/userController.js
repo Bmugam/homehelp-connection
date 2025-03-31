@@ -1,5 +1,15 @@
 const User = require('../models/User');
 
+// Create a new user
+exports.createUser = async (req, res) => {
+    try {
+        const user = await User.create(req.body);
+        res.status(201).json(user);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+};
+
 // Get user by ID
 exports.getUser = async (req, res) => {
     try {

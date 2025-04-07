@@ -93,7 +93,7 @@ const UserHeader = ({ toggleSidebar, sidebarOpen }: UserHeaderProps) => {
               </div>
               
               <Button 
-                variant="outline" 
+                variant="destructive" 
                 size="sm" 
                 onClick={logout}
                 className="border-homehelp-200 text-homehelp-700 hover:bg-homehelp-50"

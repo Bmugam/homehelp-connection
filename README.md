@@ -1,4 +1,41 @@
-# Welcome to your Lovable project
+# Home Help Connection
+
+## Project Overview
+
+Home Help Connection is a platform designed to connect individuals in need of home assistance with reliable service providers. The project aims to address the societal challenge of finding trustworthy and skilled help for household tasks, especially for the elderly, disabled, or busy professionals.
+
+## Societal Impact
+
+This project contributes to society by:
+- Empowering individuals to access reliable home assistance services.
+- Providing a platform for service providers to find meaningful work opportunities.
+- Enhancing the quality of life for users by simplifying the process of finding help.
+
+## Project Structure
+
+The project consists of two main components:
+1. **Frontend**: Built with Vite, React, and Tailwind CSS, the frontend provides an intuitive user interface for users to interact with the platform.
+2. **Backend**: A Node.js and Express-based backend that handles authentication, user management, and service-related operations.
+
+## Technologies Used
+
+- **Frontend**:
+  - Vite
+  - React
+  - Tailwind CSS
+  - shadcn-ui
+- **Backend**:
+  - Node.js
+  - Express
+  - MySQL (Database)
+
+## How to Get Started
+
+Follow the instructions in the respective README files for the frontend and backend to set up and run the project.
+
+## Deployment
+
+The project can be deployed using platforms like Netlify (for the frontend) and a Node.js hosting service (for the backend). For more details, refer to the deployment section in the backend README.
 
 ## Project info
 
@@ -49,16 +86,6 @@ npm run dev
 - Select the "Codespaces" tab.
 - Click on "New codespace" to launch a new Codespace environment.
 - Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with .
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
 
 ## How can I deploy this project?
 

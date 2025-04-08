@@ -1,11 +1,13 @@
 
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import {Button} from '@/components/ui/button';
 import { 
   LayoutDashboard, 
   Users, 
   Settings, 
   ClipboardList, 
+  BookMinus,
   LogOut, 
   Menu, 
   X,
@@ -62,6 +64,13 @@ const AdminSidebar = () => {
             label="Services"
             sidebarOpen={sidebarOpen}
           />
+
+          <SidebarItem 
+            to="/admin-dashboard/bookings" 
+            icon={<BookMinus size={20} />} 
+            label="Bookings"
+            sidebarOpen={sidebarOpen}
+          />
           <SidebarItem 
             to="/admin-dashboard/roles" 
             icon={<Shield size={20} />} 
@@ -76,13 +85,13 @@ const AdminSidebar = () => {
           />
         </ul>
       </nav>
-      
+     
       <div className="absolute bottom-0 w-full p-4">
         <button
           onClick={logout}
           className="flex items-center p-3 text-white hover:bg-homehelp-800 rounded-lg transition-colors w-full"
         >
-          <LogOut size={20} />
+          <LogOut size={20}  />
           {sidebarOpen && <span className="ml-3">Logout</span>}
         </button>
       </div>

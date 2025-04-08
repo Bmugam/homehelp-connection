@@ -65,7 +65,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
                     </div>
                     <span className="text-sm font-medium text-homehelp-900">{user?.name || "User"}</span>
                   </div>
-                  <Button variant="outline" size="sm" className="flex items-center space-x-1" onClick={logout}>
+                  <Button variant="destructive" size="sm" className="flex items-center space-x-1" onClick={logout}>
                     <LogIn className="w-4 h-4 rotate-180" />
                     <span>Logout</span>
                   </Button>
@@ -73,7 +73,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
               ) : (
                 <>
                   <Link to="/login">
-                    <Button variant="outline" size="sm" className="flex items-center space-x-1">
+                    <Button variant="success" size="sm" className="flex items-center space-x-1">
                       <LogIn className="w-4 h-4" />
                       <span>Login</span>
                     </Button>
@@ -135,7 +135,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
                           logout();
                         }}
                         className="w-full justify-center"
-                        variant="outline"
+                        variant="destructive"
                       >
                         <LogIn className="w-5 h-5 mr-2 rotate-180" />
                         <span>Logout</span>

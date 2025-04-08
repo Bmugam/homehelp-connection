@@ -50,6 +50,7 @@ interface BookingCreate {
   serviceId: string;
   date: string;
   time: string;
+  location: string;
   notes?: string;
 }
 
@@ -66,6 +67,16 @@ interface Booking extends BookingCreate {
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
   createdAt: string;
   updatedAt: string;
+}
+
+interface AdminBooking {
+  id: number;
+  provider_id: number;
+  service_id: number;
+  date: string;
+  time_slot: string;
+  location: string;
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
 }
 
 // API service methods
@@ -95,12 +106,15 @@ export const apiService = {
   },
 
   // Bookings endpoints
-  bookings: {
-    getAll: () => api.get<Booking[]>('/bookings'),
-    getById: (id: string) => api.get<Booking>(`/bookings/${id}`),
-    create: (data: BookingCreate) => api.post<Booking>('/bookings', data),
-    update: (id: string, data: BookingUpdate) => api.put<Booking>(`/bookings/${id}`, data),
-    cancel: (id: string) => api.delete<void>(`/bookings/${id}`),
+    bookings: {
+      getAll: () => api.get<Booking[]>('/api/bookings'),
+      getById: (id: string) => api.get<Booking>(`/api/bookings/${id}`),
+      create: (data: BookingCreate) => api.post<Booking>('/api/bookings', data),
+      update: (id: string, data: BookingUpdate) => api.put<Booking>(`/api/bookings/${id}`, data),
+      cancel: (id: string, reason?: string) => api.delete<void>(`/api/bookings/${id}`, { data: { reason } }),
+      reschedule: (id: string, newDate: string, newTime: string) =>
+        api.patch<Booking>(`/api/bookings/${id}/reschedule`, { date: newDate, time: newTime }),
+    getAllForAdmin: () => api.get<AdminBooking[]>('/admin/bookings').then(res => res.data),
   },
 };
 

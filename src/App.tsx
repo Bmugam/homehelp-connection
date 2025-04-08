@@ -28,6 +28,7 @@ import ProvidersManagement from './pages/Admin/AdminDashboard/pages/ProvidersMan
 import ServicesManagement from './pages/Admin/AdminDashboard/pages/ServicesManagement';
 import RoleManagement from './pages/Admin/AdminDashboard/pages/RoleManagement';
 import AdminSettings from './pages/Admin/AdminDashboard/pages/AdminSettings';
+import BookingsManagement from "./pages/Admin/AdminDashboard/pages/BookingsManagement";
 
 const queryClient = new QueryClient();
 
@@ -99,6 +100,7 @@ const App = () => (
                     <Route path="users" element={<UserManagement />} />
                     <Route path="providers" element={<ProvidersManagement />} />
                     <Route path="services" element={<ServicesManagement />} />
+                    <Route path="bookings" element={<BookingsManagement />} />
                     <Route path="roles" element={<RoleManagement />} />
                     <Route path="settings" element={<AdminSettings />} />
                   </Routes>

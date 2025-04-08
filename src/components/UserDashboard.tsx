@@ -1,5 +1,6 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { apiService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import UserHeader from './user-dashboard/UserHeader';
 import UserSidebar from './user-dashboard/UserSidebar';
@@ -18,16 +19,95 @@ const UserDashboard = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   
-  // Mock data - In a real app, this would come from an API
-  const upcomingBookings: BookingType[] = [
-    { id: 1, service: 'House Cleaning', provider: 'Clean Masters', date: '2023-06-15T10:00:00', status: 'confirmed' },
-    { id: 2, service: 'Plumbing Repair', provider: 'Quick Fix Plumbing', date: '2023-06-22T14:30:00', status: 'pending' }
-  ];
-  
-  const serviceHistory: HistoryItemType[] = [
-    { id: 101, service: 'Lawn Mowing', provider: 'Green Thumb', date: '2023-05-20T09:00:00', status: 'completed', rating: 5 },
-    { id: 102, service: 'Electrical Work', provider: 'Power Connect', date: '2023-05-10T11:00:00', status: 'completed', rating: 4 }
-  ];
+  const [upcomingBookings, setUpcomingBookings] = useState<BookingType[]>([]);
+  const [serviceHistory, setServiceHistory] = useState<HistoryItemType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fetchBookings = async () => {
+      try {
+        setLoading(true);
+        const [upcomingRes, historyRes] = await Promise.all([
+          apiService.bookings.getAll().then(res => res.data),
+          apiService.bookings.getAll().then(res => 
+            res.data.filter(b => b.status === 'completed')
+          )
+        ]);
+        
+        type ApiBooking = {
+          id: string;
+          service?: { name: string };
+          provider?: { name: string };
+          date: string;
+          status: string;
+          userId: string;
+          providerId: string;
+          serviceId: string;
+          time: string;
+          notes?: string;
+          createdAt: string;
+          updatedAt: string;
+        };
+
+        // Type guard to check if object is ApiBooking
+        const isApiBooking = (obj: unknown): obj is ApiBooking => {
+          if (typeof obj !== 'object' || obj === null) return false;
+          
+          const booking = obj as Record<string, unknown>;
+          return (
+            typeof booking.id === 'string' && 
+            typeof booking.date === 'string' &&
+            typeof booking.status === 'string'
+          );
+        };
+
+        // Transform API data to match BookingType
+        const transformBooking = (booking: unknown): BookingType => {
+          if (!isApiBooking(booking)) {
+            throw new Error('Invalid booking data');
+          }
+
+          return {
+            id: parseInt(booking.id),
+            service: booking.service?.name ?? 'Unknown Service',
+            provider: booking.provider?.name ?? 'Unknown Provider',
+            date: booking.date,
+            status: booking.status as 'pending' | 'confirmed' | 'completed' | 'cancelled'
+          };
+        };
+
+        // Process bookings with proper type checking
+        const processBookings = (bookings: unknown[]): BookingType[] => {
+          return bookings
+            .filter(isApiBooking)
+            .filter(b => b.status !== 'completed')
+            .map(transformBooking);
+        };
+
+        const processHistory = (bookings: unknown[]): HistoryItemType[] => {
+          return bookings
+            .filter(isApiBooking)
+            .filter(b => b.status === 'completed')
+            .map(transformBooking)
+            .map(b => ({
+              ...b,
+              rating: 0
+            }));
+        };
+
+        setUpcomingBookings(processBookings(upcomingRes));
+        setServiceHistory(processHistory(historyRes));
+      } catch (err) {
+        setError('Failed to load bookings');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBookings();
+  }, []);
   
   // Mock user details - In a real app, this would be part of the user object from context
   const userDetails: UserDetailsType = {
@@ -38,6 +118,22 @@ const UserDashboard = () => {
     memberSince: 'March 2025',
     profileCompletion: 80,
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div>Loading bookings...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-red-500">{error}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

@@ -37,8 +37,8 @@ const ProviderSignUp = () => {
     setIsLoading(true);
     
     try {
-      // Send data to backend API
-      const response = await fetch(`${API_BASE_URL}/api/auth/register-provider`, {
+      // Updated endpoint to match backend route
+      const response = await fetch(`${API_BASE_URL}/api/auth/registerProvider`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -46,42 +46,37 @@ const ProviderSignUp = () => {
           email, 
           phone,
           location,
-          services, // This will be used as business_name
-          bio,      // This will be used as business_description
+          services,
+          bio,
           password 
         }),
       });
       
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Registration failed');
+      }
+      
       const data = await response.json();
       
-      if (response.ok) {
-        toast({
-          title: "Provider account created successfully",
-          description: "Welcome to HomeHelp Provider Network!",
-        });
-        
-        navigate("/login");
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Registration failed",
-          description: data.message || "Please check your information and try again.",
-        });
-      }
+      toast({
+        title: "Success",
+        description: "Provider account created successfully! Please log in.",
+      });
+      
+      navigate("/provider-login");
     } catch (error) {
       console.error("Registration error:", error);
       
       toast({
         variant: "destructive",
         title: "Registration failed",
-        description: "Please check your information and try again.",
+        description: error.message || "Please check your information and try again.",
       });
     } finally {
       setIsLoading(false);
     }
   }
-
-
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-homehelp-50 to-homehelp-100 px-4 py-12">

@@ -5,44 +5,86 @@ import { Card } from "@/components/ui/card";
 import { Search, MapPin, Star, Phone, Calendar, Mail } from "lucide-react";
 import { CardContent } from "@/components/ui/card";
 import { useState, useEffect } from "react";
-import { providersData } from "@/data/providers";
+import { API_BASE_URL } from '../apiConfig';
 
-const serviceOptions = Array.from(
-  new Set(providersData.flatMap(provider => provider.services))
-);
-
-const locationOptions = Array.from(
-  new Set(providersData.map(provider => provider.location))
-);
+// Define Provider interface based on backend schema
+interface Provider {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone_number: string;
+  location: string;
+  business_description: string;
+  average_rating: number;
+  review_count: number;
+  verification_status: string;
+  services: string[];
+  profile_image?: string;
+}
 
 const Providers = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
-  const [filteredProviders, setFilteredProviders] = useState(providersData);
+  const [providers, setProviders] = useState<Provider[]>([]);
+  const [filteredProviders, setFilteredProviders] = useState<Provider[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
   const serviceFilter = searchParams.get('service');
-  
+
+  // Fetch providers from backend
   useEffect(() => {
-    let filtered = providersData;
+    const fetchProviders = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/providers`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch providers');
+        }
+        const data = await response.json();
+        setProviders(data);
+        setFilteredProviders(data);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Error fetching providers:', error);
+        setError('Failed to load providers');
+        setIsLoading(false);
+      }
+    };
+
+    fetchProviders();
+  }, []);
+
+  // Get unique service options from providers
+  const serviceOptions = Array.from(
+    new Set(providers.flatMap(provider => provider.services))
+  );
+
+  // Get unique location options from providers
+  const locationOptions = Array.from(
+    new Set(providers.map(provider => provider.location))
+  );
+
+  // Filter providers based on search and filters
+  useEffect(() => {
+    let filtered = providers;
     
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(provider => 
-        provider.name.toLowerCase().includes(query) || 
-        provider.bio.toLowerCase().includes(query) ||
+        `${provider.first_name} ${provider.last_name}`.toLowerCase().includes(query) || 
+        provider.business_description?.toLowerCase().includes(query) ||
         provider.services.some(service => service.toLowerCase().includes(query))
       );
     }
     
-    // Add automatic service filter based on URL parameter
     if (serviceFilter) {
       filtered = filtered.filter(provider => 
         provider.services.some(service => 
           service.toLowerCase().includes(serviceFilter.toLowerCase())
         )
       );
-      // Also select the service in the UI
       if (!selectedServices.includes(serviceFilter)) {
         setSelectedServices([...selectedServices, serviceFilter]);
       }
@@ -65,23 +107,40 @@ const Providers = () => {
     }
     
     setFilteredProviders(filtered);
-  }, [searchQuery, selectedServices, selectedLocations, serviceFilter]);
+  }, [searchQuery, selectedServices, selectedLocations, serviceFilter, providers]);
 
-  const toggleService = (service: string) => {
-    setSelectedServices(prev => 
-      prev.includes(service)
-        ? prev.filter(s => s !== service)
-        : [...prev, service]
+  function toggleLocation(location: string): void {
+    if (selectedLocations.includes(location)) {
+      setSelectedLocations(selectedLocations.filter(l => l !== location));
+    } else {
+      setSelectedLocations([...selectedLocations, location]);
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-12 text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-homehelp-900 mx-auto"></div>
+        <p className="mt-4 text-homehelp-600">Loading providers...</p>
+      </div>
     );
-  };
-  
-  const toggleLocation = (location: string) => {
-    setSelectedLocations(prev => 
-      prev.includes(location)
-        ? prev.filter(l => l !== location)
-        : [...prev, location]
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-12 text-center">
+        <p className="text-red-600">{error}</p>
+      </div>
     );
-  };
+  }
+
+  function toggleService(service: string): void {
+    if (selectedServices.includes(service)) {
+      setSelectedServices(selectedServices.filter(s => s !== service));
+    } else {
+      setSelectedServices([...selectedServices, service]);
+    }
+  }
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -144,31 +203,35 @@ const Providers = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredProviders.length > 0 ? (
-          filteredProviders.map(provider => (
+          filteredProviders.map((provider) => (
             <Card key={provider.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
               <CardContent className="p-0">
                 <div className="p-6">
                   <div className="flex items-start gap-4 mb-4">
                     <img 
-                      src={provider.image} 
-                      alt={provider.name}
+                      src={provider.profile_image || `https://ui-avatars.com/api/?name=${provider.first_name}+${provider.last_name}`}
+                      alt={`${provider.first_name} ${provider.last_name}`}
                       className="w-16 h-16 rounded-full object-cover"
                     />
                     <div>
-                      <h3 className="text-xl font-bold text-homehelp-900">{provider.name}</h3>
+                      <h3 className="text-xl font-bold text-homehelp-900">
+                        {`${provider.first_name} ${provider.last_name}`}
+                      </h3>
                       <div className="flex items-center gap-1 text-homehelp-600 text-sm">
                         <MapPin className="w-4 h-4" />
                         <span>{provider.location}</span>
                       </div>
                       <div className="flex items-center gap-1 text-amber-500">
                         <Star className="w-4 h-4 fill-current" />
-                        <span className="font-medium">{provider.rating}</span>
-                        <span className="text-homehelp-500 text-xs">({provider.reviews} reviews)</span>
+                        <span className="font-medium">{provider.average_rating}</span>
+                        <span className="text-homehelp-500 text-xs">({provider.review_count} reviews)</span>
                       </div>
                     </div>
                   </div>
                   
-                  <p className="text-homehelp-600 text-sm mb-4">{provider.bio.substring(0, 120)}...</p>
+                  <p className="text-homehelp-600 text-sm mb-4">
+                    {provider.business_description?.substring(0, 120)}...
+                  </p>
                   
                   <div className="mb-4">
                     <h4 className="text-sm font-medium mb-2">Services:</h4>
@@ -187,7 +250,7 @@ const Providers = () => {
                   <div className="flex flex-col space-y-1 text-sm text-homehelp-600 mb-4">
                     <div className="flex items-center gap-2">
                       <Phone className="w-4 h-4 text-homehelp-500" />
-                      <span>{provider.phone}</span>
+                      <span>{provider.phone_number}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Mail className="w-4 h-4 text-homehelp-500" />

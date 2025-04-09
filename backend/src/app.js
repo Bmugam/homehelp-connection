@@ -8,6 +8,7 @@ const { setupDatabase, createConnectionPool } = require('./config/database');
 const config = require('./config/config');
 require('dotenv').config();
 const adminRoutes = require('./routes/adminRoutes');
+const providerRoutes = require('./routes/providerRoutes'); // Added provider routes
 
 // Initialize Express app
 const app = express();
@@ -52,6 +53,7 @@ async function initializeApp() {
   // API routes with base prefix
   app.use('/api/auth', require('./routes/authRoutes'));
   app.use('/api/admin', adminRoutes); // Updated admin routes path
+  app.use('/api/providers', providerRoutes); // Registered provider routes
    // Add this back after creating the file
   // Error handling middleware
   app.use((err, req, res, next) => {

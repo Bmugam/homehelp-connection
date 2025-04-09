@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Search, MapPin, Star, Phone, Calendar, Mail } from "lucide-react";
@@ -20,6 +20,8 @@ const Providers = () => {
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
   const [filteredProviders, setFilteredProviders] = useState(providersData);
+  const [searchParams] = useSearchParams();
+  const serviceFilter = searchParams.get('service');
   
   useEffect(() => {
     let filtered = providersData;
@@ -33,9 +35,26 @@ const Providers = () => {
       );
     }
     
+    // Add automatic service filter based on URL parameter
+    if (serviceFilter) {
+      filtered = filtered.filter(provider => 
+        provider.services.some(service => 
+          service.toLowerCase().includes(serviceFilter.toLowerCase())
+        )
+      );
+      // Also select the service in the UI
+      if (!selectedServices.includes(serviceFilter)) {
+        setSelectedServices([...selectedServices, serviceFilter]);
+      }
+    }
+    
     if (selectedServices.length > 0) {
       filtered = filtered.filter(provider => 
-        selectedServices.some(service => provider.services.includes(service))
+        selectedServices.some(service => 
+          provider.services.some(s => 
+            s.toLowerCase().includes(service.toLowerCase())
+          )
+        )
       );
     }
     
@@ -46,7 +65,7 @@ const Providers = () => {
     }
     
     setFilteredProviders(filtered);
-  }, [searchQuery, selectedServices, selectedLocations]);
+  }, [searchQuery, selectedServices, selectedLocations, serviceFilter]);
 
   const toggleService = (service: string) => {
     setSelectedServices(prev => 

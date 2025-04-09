@@ -1,5 +1,5 @@
-
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Search } from "lucide-react";
@@ -7,7 +7,7 @@ import { Search } from "lucide-react";
 // Sample service data
 const servicesData = [
   {
-    id: 1,
+    id: "cleaning",
     title: "House Cleaning",
     description: "Professional home cleaning services including deep cleaning, regular maintenance, and specialized cleaning for different areas of your home.",
     image: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&q=80",
@@ -15,7 +15,7 @@ const servicesData = [
     categories: ["Cleaning", "Home Maintenance"]
   },
   {
-    id: 2,
+    id: "plumbing",
     title: "Plumbing Services",
     description: "Expert plumbing repair and installation services for kitchens, bathrooms, and water systems throughout your home.",
     image: "https://images.unsplash.com/photo-1609234656432-603fd648c5b9?auto=format&fit=crop&q=80",
@@ -23,7 +23,7 @@ const servicesData = [
     categories: ["Plumbing", "Repairs"]
   },
   {
-    id: 3,
+    id: "electrical",
     title: "Electrical Installation",
     description: "Certified electrical services for new installations, repairs, and maintenance of all electrical systems in your home.",
     image: "https://images.unsplash.com/photo-1621905251918-48416bd8575a?auto=format&fit=crop&q=80",
@@ -31,7 +31,7 @@ const servicesData = [
     categories: ["Electrical", "Installation"]
   },
   {
-    id: 4,
+    id: "gardening",
     title: "Gardening & Landscaping",
     description: "Professional landscaping and garden maintenance services to keep your outdoor spaces beautiful and well-maintained.",
     image: "https://images.unsplash.com/photo-1599685438082-ca6d8074da65?auto=format&fit=crop&q=80",
@@ -39,7 +39,7 @@ const servicesData = [
     categories: ["Gardening", "Outdoor"]
   },
   {
-    id: 5,
+    id: "painting",
     title: "Painting Services",
     description: "Interior and exterior painting services with premium quality paints and professional techniques.",
     image: "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&q=80",
@@ -47,7 +47,7 @@ const servicesData = [
     categories: ["Painting", "Home Improvement"]
   },
   {
-    id: 6,
+    id: "assembly",
     title: "Furniture Assembly",
     description: "Professional assembly of all types of furniture including beds, wardrobes, tables, and office furniture.",
     image: "https://images.unsplash.com/photo-1558051815-0f18e64e6280?auto=format&fit=crop&q=80",
@@ -60,6 +60,7 @@ const servicesData = [
 const allCategories = Array.from(new Set(servicesData.flatMap(service => service.categories)));
 
 const Services = () => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [filteredServices, setFilteredServices] = useState(servicesData);
@@ -93,6 +94,11 @@ const Services = () => {
         ? prev.filter(c => c !== category)
         : [...prev, category]
     );
+  };
+
+  const handleServiceClick = (serviceId: string) => {
+    // Navigate to providers page with service filter
+    navigate(`/providers?service=${encodeURIComponent(serviceId)}`);
   };
 
   return (
@@ -146,7 +152,11 @@ const Services = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {filteredServices.length > 0 ? (
               filteredServices.map(service => (
-                <Card key={service.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
+                <Card 
+                  key={service.id} 
+                  className="overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer"
+                  onClick={() => handleServiceClick(service.id)}
+                >
                   <div className="relative h-48">
                     <img 
                       src={service.image} 

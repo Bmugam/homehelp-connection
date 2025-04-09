@@ -50,6 +50,10 @@ const registerProvider = async (req, res) => {
   let connection;
   
   try {
+    if (!name || !email || !password || !phone) {
+      return res.status(400).json({ message: 'Required fields missing' });
+    }
+
     // Get a connection from the pool
     connection = await pool.getConnection();
     
@@ -128,7 +132,15 @@ const registerProvider = async (req, res) => {
       
       // Commit transaction
       await connection.commit();
-      res.status(201).json({ message: 'Provider registered successfully' });
+      res.status(201).json({ 
+        success: true,
+        message: 'Provider registered successfully',
+        provider: {
+          name: `${firstName} ${lastName}`,
+          email,
+          location
+        }
+      });
     } catch (error) {
       // Rollback transaction in case of error
       await connection.rollback();
@@ -136,7 +148,10 @@ const registerProvider = async (req, res) => {
     }
   } catch (error) {
     console.error('Provider registration error:', error);
-    res.status(500).json({ message: 'Server error during provider registration' });
+    res.status(500).json({ 
+      message: 'Server error during registration',
+      error: error.message 
+    });
   } finally {
     // Release the connection back to the pool
     if (connection) connection.release();

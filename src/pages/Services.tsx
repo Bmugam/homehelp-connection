@@ -70,7 +70,7 @@ const Services = () => {
           throw new Error('No data received from API');
         }
 
-        const services: Service[] = response.data || [];
+        const services: Service[] = (response.data as Service[]) || [];
         console.log('Services data:', services);
         
         if (!services.length) {
@@ -141,7 +141,7 @@ const Services = () => {
 
       setSelectedService(service);
       const response = await apiService.providers.getByService(serviceId);
-      setServiceProviders(response.data);
+      setServiceProviders(response.data as Provider[]);
       setIsModalOpen(true);
     } catch (error) {
       console.error('Error fetching providers:', error);

@@ -64,9 +64,15 @@ const adminController = {
   },
 
   getAllServices: async (req, res) => {
+    console.log('[DEBUG] Starting getAllServices request');
     try {
       const db = req.app.locals.db;
-      const [services] = await db.query(`
+      if (!db) {
+        console.error('[ERROR] Database connection is missing');
+        return res.status(500).json({ message: 'Database connection error' });
+      }
+
+      const query = `
         SELECT 
           s.*,
           JSON_ARRAYAGG(
@@ -91,7 +97,25 @@ const adminController = {
         LEFT JOIN providers p ON ps.provider_id = p.id
         LEFT JOIN users u ON p.user_id = u.id
         GROUP BY s.id
-      `);
+      `;
+      console.log('[DEBUG] Executing query:', query);
+
+      const [services] = await db.query(query);
+      console.log('[DEBUG] Query results:', {
+        rowCount: services.length,
+        firstService: services.length > 0 ? services[0] : null,
+        providersCount: services.length > 0 ? services[0].providers?.length : 0
+      });
+
+      if (services.length === 0) {
+        console.warn('[WARNING] No services found in database');
+        
+        // Check if tables exist
+        const [tables] = await db.query("SHOW TABLES LIKE 'services'");
+        if (tables.length === 0) {
+          console.error('[ERROR] services table does not exist');
+        }
+      }
 
       const formattedServices = services.map(service => ({
         ...service,
@@ -105,10 +129,26 @@ const adminController = {
           }))
       }));
 
+      console.log('[DEBUG] Formatted services:', {
+        count: formattedServices.length,
+        sample: formattedServices.length > 0 ? formattedServices[0] : null
+      });
+
       res.json(formattedServices);
     } catch (error) {
-      console.error('Get all services error:', error);
-      res.status(500).json({ message: 'Error fetching services' });
+      console.error('[ERROR] Get all services error:', {
+        message: error.message,
+        sql: error.sql,
+        stack: error.stack
+      });
+      
+      res.status(500).json({ 
+        message: 'Error fetching services',
+        ...(process.env.NODE_ENV === 'development' && { 
+          error: error.message,
+          stack: error.stack 
+        })
+      });
     }
   },
 

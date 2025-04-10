@@ -55,6 +55,7 @@ async function initializeApp() {
   app.use('/api/admin', adminRoutes);
   app.use('/api/providers', providerRoutes);
   app.use('/api/bookings', require('./routes/bookingRoutes'));
+  app.use('/api/services', require('./routes/servicesRoutes'));
    // Add this back after creating the file
   // Error handling middleware
   app.use((err, req, res, next) => {

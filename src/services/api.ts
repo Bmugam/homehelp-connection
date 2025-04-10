@@ -95,8 +95,8 @@ export const apiService = {
 
   // Services endpoints
   services: {
-    getAll: () => api.get('/services'),
-    getById: (id: string) => api.get(`/services/${id}`),
+    getAll: () => api.get('/api/services'),
+    getById: (id: string) => api.get(`/api/services/${id}`),
   },
 
   // Providers endpoints

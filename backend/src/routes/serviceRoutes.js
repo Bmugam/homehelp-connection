@@ -17,7 +17,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const db = req.app.locals.db;
-    const [services] = await db.query('SELECT * FROM services WHERE id = ?', [req.params.id]);
+    const [services] = await db.query('SELECT * FROM provider_services WHERE id = ?', [req.params.id]);
     if (services.length === 0) {
       return res.status(404).json({ message: 'Service not found' });
     }

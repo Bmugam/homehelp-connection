@@ -4,7 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Search, Star, Clock, Badge, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { apiService } from '../services/api';
+import { apiService } from "@/services/api";
+import { ProviderListModal } from "@/components/ProviderListModal";
 
 interface Service {
   id: string;
@@ -28,6 +29,20 @@ interface Service {
   updated_at: string;
 }
 
+interface Provider {
+  id: string;
+  first_name: string;
+  last_name: string;
+  profile_image: string;
+  location: string;
+  business_name: string;
+  business_description: string;
+  average_rating: number;
+  review_count: number;
+  price: number;
+  service_description?: string;
+}
+
 const Services = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
@@ -38,6 +53,9 @@ const Services = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [allCategories, setAllCategories] = useState<string[]>([]);
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const [serviceProviders, setServiceProviders] = useState<Provider[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Fetch services from API
   useEffect(() => {
@@ -116,8 +134,18 @@ const Services = () => {
     );
   };
 
-  const handleServiceClick = (serviceId: string) => {
-    navigate(`/providers?service=${encodeURIComponent(serviceId)}`);
+  const handleServiceClick = async (serviceId: string) => {
+    try {
+      const service = servicesData.find(s => s.id === serviceId);
+      if (!service) return;
+
+      setSelectedService(service);
+      const response = await apiService.providers.getByService(serviceId);
+      setServiceProviders(response.data);
+      setIsModalOpen(true);
+    } catch (error) {
+      console.error('Error fetching providers:', error);
+    }
   };
 
   const clearFilters = () => {
@@ -268,6 +296,12 @@ const Services = () => {
           )}
         </div>
       </div>
+      <ProviderListModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        providers={serviceProviders}
+        serviceName={selectedService?.name || ''}
+      />
     </div>
   );
 };

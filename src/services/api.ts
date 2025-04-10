@@ -97,12 +97,14 @@ export const apiService = {
   services: {
     getAll: () => api.get('/api/services'),
     getById: (id: string) => api.get(`/api/services/${id}`),
+    getProvidersByService: (serviceId: string) => api.get(`/api/services/${serviceId}/providers`),
   },
 
   // Providers endpoints
   providers: {
-    getAll: () => api.get('/providers'),
+    getAll: () => api.get('/api/providers'),
     getById: (id: string) => api.get(`/providers/${id}`),
+    getByService: (serviceId: string) => api.get(`/api/providers/service/${serviceId}`),
   },
 
   // Bookings endpoints
@@ -111,7 +113,8 @@ export const apiService = {
       getById: (id: string) => api.get<Booking>(`/api/bookings/${id}`),
       create: (data: BookingCreate) => api.post<Booking>('/api/bookings', data),
       update: (id: string, data: BookingUpdate) => api.put<Booking>(`/api/bookings/${id}`, data),
-      cancel: (id: string, reason?: string) => api.delete<void>(`/api/bookings/${id}`, { data: { reason } }),
+      cancel: (id: string, reason?: string) => 
+        api.request({ url: `/api/bookings/${id}`, method: 'DELETE', data: { reason } }),
       reschedule: (id: string, newDate: string, newTime: string) =>
         api.patch<Booking>(`/api/bookings/${id}/reschedule`, { date: newDate, time: newTime }),
       getAllForAdmin: () => api.get<AdminBooking[]>('/api/admin/bookings').then(res => res.data),

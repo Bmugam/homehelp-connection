@@ -29,8 +29,8 @@ const UserDashboard = () => {
       try {
         setLoading(true);
         const [upcomingRes, historyRes] = await Promise.all([
-          apiService.bookings.getAll().then(res => res.data),
-          apiService.bookings.getAll().then(res => 
+          apiService.bookings.getUserBookings().then(res => res.data),
+          apiService.bookings.getUserBookings().then(res => 
             res.data.filter(b => b.status === 'completed')
           )
         ]);

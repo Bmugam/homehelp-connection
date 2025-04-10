@@ -52,8 +52,9 @@ async function initializeApp() {
   
   // API routes with base prefix
   app.use('/api/auth', require('./routes/authRoutes'));
-  app.use('/api/admin', adminRoutes); // Updated admin routes path
-  app.use('/api/providers', providerRoutes); // Registered provider routes
+  app.use('/api/admin', adminRoutes);
+  app.use('/api/providers', providerRoutes);
+  app.use('/api/bookings', require('./routes/bookingRoutes'));
    // Add this back after creating the file
   // Error handling middleware
   app.use((err, req, res, next) => {

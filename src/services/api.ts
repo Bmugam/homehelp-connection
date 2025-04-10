@@ -107,14 +107,14 @@ export const apiService = {
 
   // Bookings endpoints
     bookings: {
-      getAll: () => api.get<Booking[]>('/api/bookings'),
+      getUserBookings: () => api.get<Booking[]>('/api/bookings'),
       getById: (id: string) => api.get<Booking>(`/api/bookings/${id}`),
       create: (data: BookingCreate) => api.post<Booking>('/api/bookings', data),
       update: (id: string, data: BookingUpdate) => api.put<Booking>(`/api/bookings/${id}`, data),
       cancel: (id: string, reason?: string) => api.delete<void>(`/api/bookings/${id}`, { data: { reason } }),
       reschedule: (id: string, newDate: string, newTime: string) =>
         api.patch<Booking>(`/api/bookings/${id}/reschedule`, { date: newDate, time: newTime }),
-    getAllForAdmin: () => api.get<AdminBooking[]>('/admin/bookings').then(res => res.data),
+      getAllForAdmin: () => api.get<AdminBooking[]>('/api/admin/bookings').then(res => res.data),
   },
 };
 

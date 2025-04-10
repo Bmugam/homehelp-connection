@@ -65,7 +65,7 @@ const ProviderLayout = ({ children }: { children: React.ReactNode }) => {
               <Button variant="ghost" size="sm" className="text-homehelp-100 hover:text-white">
                 <Bell className="w-5 h-5" />
               </Button>
-              <Button variant="outline" size="sm" onClick={logout} className="text-red border-homehelp-700 hover:bg-homehelp-800">
+              <Button variant="destructive" size="sm" onClick={logout} className="text-red border-homehelp-700 hover:bg-homehelp-800">
                 <LogOut className="w-4 h-4 mr-2" />
                 Logout
               </Button>

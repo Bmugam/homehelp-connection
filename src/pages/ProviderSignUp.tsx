@@ -64,7 +64,7 @@ const ProviderSignUp = () => {
         description: "Provider account created successfully! Please log in.",
       });
       
-      navigate("/provider-login");
+      navigate("/login");
     } catch (error) {
       console.error("Registration error:", error);
       

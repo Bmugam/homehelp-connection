@@ -207,9 +207,9 @@ const adminController = {
     try {
       const db = req.app.locals.db;
       const [bookings] = await db.query(`
-        SELECT b.*, u.first_name, u.last_name, s.service_name 
+        SELECT b.*, u.first_name, u.last_name, s.name 
         FROM bookings b 
-        JOIN users u ON b.user_id = u.id 
+        JOIN users u ON b.client_id = u.id 
         JOIN services s ON b.service_id = s.id
       `);
       res.json(bookings);

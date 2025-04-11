@@ -1,27 +1,12 @@
 import React from 'react';
 import { Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Search, MapPin, Star, Phone, Calendar, Mail } from "lucide-react";
-import { CardContent } from "@/components/ui/card";
+import { BookingModal } from '../components/BookingModal';
 import { useState, useEffect } from "react";
 import { API_BASE_URL } from '../apiConfig';
-
-// Define Provider interface based on backend schema
-interface Provider {
-  id: number;
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone_number: string;
-  location: string;
-  business_description: string;
-  average_rating: number;
-  review_count: number;
-  verification_status: string;
-  services: string[];
-  profile_image?: string;
-}
+import type { Provider } from "@/types";
 
 const Providers = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -33,6 +18,8 @@ const Providers = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
   const serviceFilter = searchParams.get('service');
+  const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
 
   // Fetch providers from backend
   useEffect(() => {
@@ -43,8 +30,39 @@ const Providers = () => {
           throw new Error('Failed to fetch providers');
         }
         const data = await response.json();
-        setProviders(data);
-        setFilteredProviders(data);
+        // Map backend data to match our Provider interface
+        const mappedProviders = data.map((provider: {
+          id: number;
+          name: string;
+          email: string;
+          phone: string;
+          location: string;
+          bio: string;
+          image?: string;
+          rating?: number;
+          average_rating?: number;
+          reviews?: number;
+          review_count?: number;
+          verification_status: string;
+          services: string[];
+        }) => ({
+          id: provider.id,
+          name: provider.name,
+          email: provider.email,
+          phone: provider.phone,
+          location: provider.location,
+          bio: provider.bio,
+          image: provider.image || '',
+          rating: provider.rating || provider.average_rating || 0,
+          reviews: provider.reviews || provider.review_count || 0,
+          verification_status: provider.verification_status,
+          services: provider.services.map((service: string) => ({
+            id: service.toLowerCase().replace(/\s+/g, '-'),
+            name: service
+          }))
+        }));
+        setProviders(mappedProviders);
+        setFilteredProviders(mappedProviders);
         setIsLoading(false);
       } catch (error) {
         console.error('Error fetching providers:', error);
@@ -58,7 +76,7 @@ const Providers = () => {
 
   // Get unique service options from providers
   const serviceOptions = Array.from(
-    new Set(providers.flatMap(provider => provider.services))
+    new Set(providers.flatMap(provider => provider.services.map(s => s.name)))
   );
 
   // Get unique location options from providers
@@ -73,16 +91,16 @@ const Providers = () => {
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(provider => 
-        `${provider.first_name} ${provider.last_name}`.toLowerCase().includes(query) || 
-        provider.business_description?.toLowerCase().includes(query) ||
-        provider.services.some(service => service.toLowerCase().includes(query))
+        provider.name.toLowerCase().includes(query) || 
+        provider.bio?.toLowerCase().includes(query) ||
+        provider.services.some(service => service.name.toLowerCase().includes(query))
       );
     }
     
     if (serviceFilter) {
       filtered = filtered.filter(provider => 
         provider.services.some(service => 
-          service.toLowerCase().includes(serviceFilter.toLowerCase())
+          service.name.toLowerCase().includes(serviceFilter.toLowerCase())
         )
       );
       if (!selectedServices.includes(serviceFilter)) {
@@ -94,7 +112,7 @@ const Providers = () => {
       filtered = filtered.filter(provider => 
         selectedServices.some(service => 
           provider.services.some(s => 
-            s.toLowerCase().includes(service.toLowerCase())
+            s.name.toLowerCase().includes(service.toLowerCase())
           )
         )
       );
@@ -209,13 +227,13 @@ const Providers = () => {
                 <div className="p-6">
                   <div className="flex items-start gap-4 mb-4">
                     <img 
-                      src={provider.profile_image || `https://ui-avatars.com/api/?name=${provider.first_name}+${provider.last_name}`}
-                      alt={`${provider.first_name} ${provider.last_name}`}
+                      src={provider.image || `https://ui-avatars.com/api/?name=${provider.name}`}
+                      alt={provider.name}
                       className="w-16 h-16 rounded-full object-cover"
                     />
                     <div>
                       <h3 className="text-xl font-bold text-homehelp-900">
-                        {`${provider.first_name} ${provider.last_name}`}
+                        {provider.name}
                       </h3>
                       <div className="flex items-center gap-1 text-homehelp-600 text-sm">
                         <MapPin className="w-4 h-4" />
@@ -223,14 +241,14 @@ const Providers = () => {
                       </div>
                       <div className="flex items-center gap-1 text-amber-500">
                         <Star className="w-4 h-4 fill-current" />
-                        <span className="font-medium">{provider.average_rating}</span>
-                        <span className="text-homehelp-500 text-xs">({provider.review_count} reviews)</span>
+                        <span className="font-medium">{provider.rating}</span>
+                        <span className="text-homehelp-500 text-xs">({provider.reviews} reviews)</span>
                       </div>
                     </div>
                   </div>
                   
                   <p className="text-homehelp-600 text-sm mb-4">
-                    {provider.business_description?.substring(0, 120)}...
+                    {provider.bio?.substring(0, 120)}...
                   </p>
                   
                   <div className="mb-4">
@@ -238,10 +256,10 @@ const Providers = () => {
                     <div className="flex flex-wrap gap-2">
                       {provider.services.map(service => (
                         <span 
-                          key={`${provider.id}-${service}`}
+                          key={`${provider.id}-${service.id}`}
                           className="text-xs bg-homehelp-100 text-homehelp-700 px-2 py-1 rounded-full"
                         >
-                          {service}
+                          {service.name}
                         </span>
                       ))}
                     </div>
@@ -250,7 +268,7 @@ const Providers = () => {
                   <div className="flex flex-col space-y-1 text-sm text-homehelp-600 mb-4">
                     <div className="flex items-center gap-2">
                       <Phone className="w-4 h-4 text-homehelp-500" />
-                      <span>{provider.phone_number}</span>
+                      <span>{provider.phone}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Mail className="w-4 h-4 text-homehelp-500" />
@@ -263,7 +281,14 @@ const Providers = () => {
                   <Link to={`/providers/${provider.id}`} className="text-sm text-homehelp-700 hover:text-homehelp-900">
                     View Profile
                   </Link>
-                  <Button size="sm" className="flex items-center gap-1">
+                  <Button 
+                    size="sm" 
+                    className="flex items-center gap-1"
+                    onClick={() => {
+                      setSelectedProvider(provider);
+                      setIsBookingModalOpen(true);
+                    }}
+                  >
                     <Calendar className="w-4 h-4" />
                     <span>Book Now</span>
                   </Button>
@@ -277,6 +302,14 @@ const Providers = () => {
           </div>
         )}
       </div>
+
+      {selectedProvider && (
+        <BookingModal
+          isOpen={isBookingModalOpen}
+          onClose={() => setIsBookingModalOpen(false)}
+          provider={selectedProvider}
+        />
+      )}
     </div>
   );
 };

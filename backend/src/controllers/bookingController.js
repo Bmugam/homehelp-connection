@@ -3,7 +3,8 @@ const bookingController = {
     const db = req.app.locals.db;
     
     try {
-      const { provider_id, service_id, date, time_slot, location, notes } = req.body;
+      console.log('Received booking create request body:', req.body);
+      const { providerId, serviceId, date, time, location, notes } = req.body;
       const user_id = req.user.id;
 
       await db.query('START TRANSACTION');
@@ -15,6 +16,7 @@ const bookingController = {
       );
 
       if (clientRows.length === 0) {
+        console.log('Client profile not found for user_id:', user_id);
         await db.query('ROLLBACK');
         return res.status(404).json({ message: 'Client profile not found' });
       }
@@ -22,10 +24,11 @@ const bookingController = {
       // 2. Verify provider exists and is active
       const [providerRows] = await db.query(
         'SELECT p.id FROM providers p JOIN users u ON p.user_id = u.id WHERE u.id = ? AND u.user_type = "provider"',
-        [provider_id]
+        [providerId]
       );
 
       if (providerRows.length === 0) {
+        console.log('Provider not found for providerId:', providerId);
         await db.query('ROLLBACK');
         return res.status(404).json({ message: 'Provider not found' });
       }
@@ -33,7 +36,7 @@ const bookingController = {
       // 3. Verify service belongs to provider
       const [serviceRows] = await db.query(
         'SELECT * FROM provider_services WHERE provider_id = ? AND service_id = ?',
-        [providerRows[0].id, service_id]
+        [providerRows[0].id, serviceId]
       );
 
       if (serviceRows.length === 0) {
@@ -49,9 +52,9 @@ const bookingController = {
         [
           clientRows[0].id,
           providerRows[0].id,
-          service_id,
+          serviceId,
           date,
-          time_slot,
+          time,
           location,
           notes,
           'pending'
@@ -63,8 +66,8 @@ const bookingController = {
         `INSERT INTO notifications (user_id, type, content)
          VALUES (?, 'new_booking', ?)`,
         [
-          provider_id,
-          `New booking request for ${date} at ${time_slot}`
+          providerId,
+          `New booking request for ${date} at ${time}`
         ]
       );
 

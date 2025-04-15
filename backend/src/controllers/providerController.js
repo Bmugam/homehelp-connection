@@ -1,26 +1,8 @@
 const getAllProviders = async (db) => {
   const [providers] = await db.query(`
     SELECT 
-      u.id,
-      u.first_name,
-      u.last_name,
-      u.email,
-      u.phone_number,
-      u.profile_image,
-      p.location,
-      p.business_name,
-      p.business_description,
-      p.average_rating,
-      p.review_count,
-      p.verification_status,
-      GROUP_CONCAT(DISTINCT s.name) as services
-    FROM users u
-    JOIN providers p ON u.id = p.user_id
-    LEFT JOIN provider_services ps ON p.id = ps.provider_id
-    LEFT JOIN services s ON ps.service_id = s.id
-    WHERE u.user_type = 'provider'
-    GROUP BY 
-      u.id,
+      u.id as user_id,
+      p.id as provider_id,
       u.first_name,
       u.last_name,
       u.email,
@@ -32,14 +14,25 @@ const getAllProviders = async (db) => {
       p.average_rating,
       p.review_count,
       p.verification_status
+    FROM users u
+    JOIN providers p ON u.id = p.user_id
+    WHERE u.user_type = 'provider'
   `);
 
-  return providers.map(provider => ({
-    ...provider,
-    services: provider.services ? provider.services.split(',') : [],
-    average_rating: Number(provider.average_rating || 0),
-    review_count: Number(provider.review_count || 0)
-  }));
+  for (const provider of providers) {
+    const [services] = await db.query(`
+      SELECT s.id, s.name, ps.price
+      FROM provider_services ps
+      JOIN services s ON ps.service_id = s.id
+      WHERE ps.provider_id = ?
+    `, [provider.provider_id]);
+    provider.services = services;
+    provider.average_rating = Number(provider.average_rating || 0);
+    provider.review_count = Number(provider.review_count || 0);
+  }
+  console.log('Providers with services:', providers);
+
+  return providers;
 };
 
 const getProvidersByService = async (db, serviceId) => {

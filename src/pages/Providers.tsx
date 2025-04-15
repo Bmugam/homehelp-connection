@@ -32,34 +32,31 @@ const Providers = () => {
         const data = await response.json();
         // Map backend data to match our Provider interface
         const mappedProviders = data.map((provider: {
-          id: number;
-          name: string;
+          user_id: number;
+          provider_id: number;
+          first_name: string;
+          last_name: string;
           email: string;
-          phone: string;
+          phone_number: string;
           location: string;
-          bio: string;
-          image?: string;
-          rating?: number;
+          business_description: string;
+          profile_image?: string;
           average_rating?: number;
-          reviews?: number;
           review_count?: number;
           verification_status: string;
-          services: string[];
+          services: { id: number; name: string; price?: number }[];
         }) => ({
-          id: provider.id,
-          name: provider.name,
+          id: provider.provider_id,
+          name: `${provider.first_name} ${provider.last_name}`,
           email: provider.email,
-          phone: provider.phone,
+          phone: provider.phone_number,
           location: provider.location,
-          bio: provider.bio,
-          image: provider.image || '',
-          rating: provider.rating || provider.average_rating || 0,
-          reviews: provider.reviews || provider.review_count || 0,
+          bio: provider.business_description,
+          image: provider.profile_image || '',
+          rating: provider.average_rating || 0,
+          reviews: provider.review_count || 0,
           verification_status: provider.verification_status,
-          services: provider.services.map((service: string) => ({
-            id: service.toLowerCase().replace(/\s+/g, '-'),
-            name: service
-          }))
+          services: provider.services
         }));
         setProviders(mappedProviders);
         setFilteredProviders(mappedProviders);
@@ -256,7 +253,7 @@ const Providers = () => {
                     <div className="flex flex-wrap gap-2">
                       {provider.services.map(service => (
                         <span 
-                          key={`${provider.id}-${service.id}`}
+                          key={service.id}
                           className="text-xs bg-homehelp-100 text-homehelp-700 px-2 py-1 rounded-full"
                         >
                           {service.name}

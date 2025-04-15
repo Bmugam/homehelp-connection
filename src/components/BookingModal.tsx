@@ -17,7 +17,7 @@ interface BookingModalProps {
 
 export const BookingModal = ({ isOpen, onClose, provider }: BookingModalProps) => {
   const [selectedDate, setSelectedDate] = useState<Date>();
-  const [selectedService, setSelectedService] = useState('');
+  const [selectedService, setSelectedService] = useState<number | ''>('');
   const [timeSlot, setTimeSlot] = useState('');
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
@@ -31,13 +31,20 @@ export const BookingModal = ({ isOpen, onClose, provider }: BookingModalProps) =
       toast.success('Booking created successfully');
       onClose();
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Booking creation error:', error);
       toast.error('Failed to create booking');
     }
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!provider || !provider.id) {
+      toast.error('Provider information is missing');
+      return;
+    }
+
     if (!selectedDate || !selectedService || !timeSlot || !location) {
       toast.error('Please fill in all required fields');
       return;
@@ -51,14 +58,18 @@ export const BookingModal = ({ isOpen, onClose, provider }: BookingModalProps) =
       return;
     }
 
-    bookingMutation.mutate({
+    const payload = {
       providerId: provider.id.toString(),
-      serviceId: selectedService,
+      serviceId: selectedService.toString(),
       date: selectedDate.toISOString().split('T')[0], // Format as YYYY-MM-DD
       time: timeSlot,
       location,
       notes: notes || undefined
-    });
+    };
+
+    console.log('Booking payload:', payload);
+
+    bookingMutation.mutate(payload);
   };
 
   return (
@@ -79,13 +90,13 @@ export const BookingModal = ({ isOpen, onClose, provider }: BookingModalProps) =
               />
               <select
                 value={selectedService}
-                onChange={(e) => setSelectedService(e.target.value)}
+                onChange={(e) => setSelectedService(Number(e.target.value))}
                 className="w-full p-2 border rounded-md"
               >
                 <option value="">Select a service</option>
                 {provider.services.map((service) => (
                   <option key={service.id} value={service.id}>
-                    {service.name} - ${service.price}
+                    {service.name}{service.price !== undefined ? ` - $${service.price}` : ''}
                   </option>
                 ))}
               </select>

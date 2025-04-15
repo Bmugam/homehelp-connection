@@ -23,7 +23,7 @@ const bookingController = {
 
       // 2. Verify provider exists and is active
       const [providerRows] = await db.query(
-        'SELECT p.id FROM providers p JOIN users u ON p.user_id = u.id WHERE u.id = ? AND u.user_type = "provider"',
+        'SELECT p.id FROM providers p JOIN users u ON p.user_id = u.id WHERE p.id = ? AND u.user_type = "provider"',
         [providerId]
       );
 

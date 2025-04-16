@@ -109,6 +109,81 @@ const bookingController = {
       console.error('Error fetching user bookings:', error);
       res.status(500).json({ message: 'Error fetching bookings' });
     }
+  },
+
+  updateBooking: async (req, res) => {
+    const db = req.app.locals.db;
+    const bookingId = req.params.id;
+    const user_id = req.user.id;
+    const { date, time, status, notes } = req.body;
+
+    try {
+      await db.query('START TRANSACTION');
+
+      // Verify booking belongs to user
+      const [bookingRows] = await db.query(
+        `SELECT b.* FROM bookings b
+         JOIN clients c ON b.client_id = c.id
+         WHERE b.id = ? AND c.user_id = ?`,
+        [bookingId, user_id]
+      );
+
+      if (bookingRows.length === 0) {
+        await db.query('ROLLBACK');
+        return res.status(404).json({ message: 'Booking not found' });
+      }
+
+      // Update booking details
+      await db.query(
+        `UPDATE bookings SET date = ?, time_slot = ?, status = ?, notes = ? WHERE id = ?`,
+        [date, time, status, notes, bookingId]
+      );
+
+      await db.query('COMMIT');
+
+      res.json({ message: 'Booking updated successfully' });
+    } catch (error) {
+      await db.query('ROLLBACK');
+      console.error('Error updating booking:', error);
+      res.status(500).json({ message: 'Error updating booking' });
+    }
+  },
+
+  deleteBooking: async (req, res) => {
+    const db = req.app.locals.db;
+    const bookingId = req.params.id;
+    const user_id = req.user.id;
+
+    try {
+      await db.query('START TRANSACTION');
+
+      // Verify booking belongs to user
+      const [bookingRows] = await db.query(
+        `SELECT b.* FROM bookings b
+         JOIN clients c ON b.client_id = c.id
+         WHERE b.id = ? AND c.user_id = ?`,
+        [bookingId, user_id]
+      );
+
+      if (bookingRows.length === 0) {
+        await db.query('ROLLBACK');
+        return res.status(404).json({ message: 'Booking not found' });
+      }
+
+      // Delete booking
+      await db.query(
+        `DELETE FROM bookings WHERE id = ?`,
+        [bookingId]
+      );
+
+      await db.query('COMMIT');
+
+      res.json({ message: 'Booking deleted successfully' });
+    } catch (error) {
+      await db.query('ROLLBACK');
+      console.error('Error deleting booking:', error);
+      res.status(500).json({ message: 'Error deleting booking' });
+    }
   }
 };
 

@@ -1,15 +1,16 @@
-
 import React from 'react';
 import { CheckCircle } from 'lucide-react';
-import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from '../../ui/button';
+import { Card, CardHeader, CardTitle, CardContent } from '../../ui/card';
 import { HistoryItemType } from '../types';
 
 interface ServiceHistoryProps {
   serviceHistory: HistoryItemType[];
+  onViewDetails: (id: number) => void;
+  onBookAgain: (serviceId: number) => void;
 }
 
-const ServiceHistory = ({ serviceHistory }: ServiceHistoryProps) => {
+const ServiceHistory = ({ serviceHistory, onViewDetails, onBookAgain }: ServiceHistoryProps) => {
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-homehelp-900">Service History</h2>
@@ -45,8 +46,8 @@ const ServiceHistory = ({ serviceHistory }: ServiceHistoryProps) => {
                     <span>Completed on {new Date(item.date).toLocaleDateString()}</span>
                   </div>
                   <div className="flex space-x-2">
-                    <Button variant="outline" size="sm">View Details</Button>
-                    <Button variant="outline" size="sm">Book Again</Button>
+                    <Button variant="outline" size="sm" onClick={() => onViewDetails(item.id)}>View Details</Button>
+                    <Button variant="outline" size="sm" onClick={() => onBookAgain(item.id)}>Book Again</Button>
                   </div>
                 </div>
               ))}

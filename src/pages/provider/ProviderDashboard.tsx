@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 
 import {
   BarChart,
@@ -12,7 +13,8 @@ import {
   Users,
   XCircle,
 } from "lucide-react";
-import { Card } from '@/components/ui/card';
+
+import { Link } from 'react-router-dom';
 
 const ProviderDashboard = () => {
   const { user } = useAuth();
@@ -79,6 +81,7 @@ const ProviderDashboard = () => {
 
   return (
     <div>
+      
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-homehelp-900">Provider Dashboard</h1>
@@ -209,7 +212,7 @@ const ProviderDashboard = () => {
                 <div className="flex-1 bg-homehelp-100 h-2 rounded-full mx-2">
                   <div className="bg-amber-400 h-2 rounded-full" style={{ width: "2%" }}></div>
                 </div>
-                <span className="text-sm text-homehelp-600">2%</span>
+                <span className="text-homehelp-600">2%</span>
               </div>
             </div>
           </Card>

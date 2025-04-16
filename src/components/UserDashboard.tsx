@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { apiService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -9,7 +8,7 @@ import UserProfile from './user-dashboard/tabs/UserProfile';
 import UserBookings from './user-dashboard/tabs/UserBookings';
 import ServiceHistory from './user-dashboard/tabs/ServiceHistory';
 import AccountSettings from './user-dashboard/tabs/AccountSettings';
-import { BookingType, UserDetailsType } from './user-dashboard/types';
+import { BookingType, UserDetailsType, BookingCreate, BookingUpdate } from './user-dashboard/types';
 
 interface HistoryItemType extends BookingType {
   rating: number;
@@ -18,6 +17,7 @@ interface HistoryItemType extends BookingType {
 const UserDashboard = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   
   const [upcomingBookings, setUpcomingBookings] = useState<BookingType[]>([]);
   const [serviceHistory, setServiceHistory] = useState<HistoryItemType[]>([]);
@@ -50,7 +50,6 @@ const UserDashboard = () => {
           updatedAt: string;
         };
 
-        // Type guard to check if object is ApiBooking
         const isApiBooking = (obj: unknown): obj is ApiBooking => {
           if (typeof obj !== 'object' || obj === null) return false;
           
@@ -62,7 +61,6 @@ const UserDashboard = () => {
           );
         };
 
-        // Transform API data to match BookingType
         const transformBooking = (booking: unknown): BookingType => {
           if (!isApiBooking(booking)) {
             throw new Error('Invalid booking data');
@@ -77,7 +75,6 @@ const UserDashboard = () => {
           };
         };
 
-        // Process bookings with proper type checking
         const processBookings = (bookings: unknown[]): BookingType[] => {
           return bookings
             .filter(isApiBooking)
@@ -108,8 +105,7 @@ const UserDashboard = () => {
 
     fetchBookings();
   }, []);
-  
-  // Mock user details - In a real app, this would be part of the user object from context
+
   const userDetails: UserDetailsType = {
     name: user?.name || 'Guest User',
     email: user?.email || 'guest@example.com',
@@ -117,6 +113,51 @@ const UserDashboard = () => {
     address: '123 Main St, Nairobi, Kenya',
     memberSince: 'March 2025',
     profileCompletion: 80,
+  };
+
+  const handleUpdateProfile = async (updatedDetails: UserDetailsType) => {
+    try {
+      // For now, just verify the user is authenticated since update endpoint isn't available
+      await apiService.auth.getCurrentUser();
+      console.log('Profile update simulation successful');
+    } catch (err) {
+      console.error('Failed to update profile', err);
+      throw new Error('Failed to update profile. Please try again.');
+    }
+  };
+
+  const handleUpdateBooking = async (bookingId: number, updatedData: Partial<BookingType>) => {
+    try {
+      const updatePayload: BookingUpdate = {
+        status: updatedData.status as 'confirmed' | 'completed' | 'cancelled' | undefined,
+        date: updatedData.date,
+        time: updatedData.time,
+        notes: updatedData.notes
+      };
+      await apiService.bookings.update(bookingId.toString(), updatePayload);
+      setUpcomingBookings(prev => prev.map(b => b.id === bookingId ? { ...b, ...updatedData } : b));
+    } catch (err) {
+      console.error('Failed to update booking', err);
+      throw err;
+    }
+  };
+
+  const handleDeleteBooking = async (bookingId: number) => {
+    try {
+      await apiService.bookings.cancel(bookingId.toString());
+      setUpcomingBookings(prev => prev.filter(b => b.id !== bookingId));
+    } catch (err) {
+      console.error('Failed to delete booking', err);
+      throw err;
+    }
+  };
+
+  const handleViewDetails = (id: number) => {
+    console.log('View details for service history id:', id);
+  };
+
+  const handleBookAgain = (serviceId: number) => {
+    console.log('Book again for service id:', serviceId);
   };
 
   if (loading) {
@@ -135,11 +176,12 @@ const UserDashboard = () => {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <UserHeader toggleSidebar={function (): void {
-        throw new Error('Function not implemented.');
-      } } sidebarOpen={false} />
+    return (
+      <div className="min-h-screen bg-gray-50">
+      <UserHeader 
+        toggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
+        sidebarOpen={sidebarOpen} 
+      />
       
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row gap-6">
@@ -153,22 +195,24 @@ const UserDashboard = () => {
             {activeTab === 'overview' && (
               <DashboardOverview 
                 userName={userDetails.name} 
-                upcomingBookings={upcomingBookings} 
-                serviceHistory={serviceHistory} 
                 setActiveTab={setActiveTab} 
               />
             )}
             
             {activeTab === 'profile' && (
-              <UserProfile userDetails={userDetails} />
+              <UserProfile userDetails={userDetails} onUpdate={handleUpdateProfile} />
             )}
             
             {activeTab === 'bookings' && (
-              <UserBookings upcomingBookings={upcomingBookings} />
+              <UserBookings />
             )}
             
             {activeTab === 'history' && (
-              <ServiceHistory serviceHistory={serviceHistory} />
+              <ServiceHistory 
+                serviceHistory={serviceHistory} 
+                onViewDetails={handleViewDetails} 
+                onBookAgain={handleBookAgain} 
+              />
             )}
             
             {activeTab === 'settings' && (

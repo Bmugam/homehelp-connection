@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -8,23 +8,30 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService } from '@/services/api';
 import { toast } from 'sonner';
 import { Provider } from '@/types';
-import { Clock, MapPin, CalendarIcon, ClipboardList } from 'lucide-react';
+import { Clock, MapPin, ClipboardList } from 'lucide-react';
 
 interface BookingModalProps {
   isOpen: boolean;
   onClose: () => void;
   provider: Provider;
+  selectedServiceId?: number;
 }
 
-export const BookingModal = ({ isOpen, onClose, provider }: BookingModalProps) => {
+export const BookingModal = ({ isOpen, onClose, provider, selectedServiceId }: BookingModalProps) => {
   const [selectedDate, setSelectedDate] = useState<Date>();
-  const [selectedService, setSelectedService] = useState<number | ''>('');
+  const [selectedService, setSelectedService] = useState<number | ''>(selectedServiceId ?? '');
   const [timeSlot, setTimeSlot] = useState('');
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
   const [step, setStep] = useState(1);
-  
+
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (selectedServiceId !== undefined) {
+      setSelectedService(selectedServiceId);
+    }
+  }, [selectedServiceId]);
 
   const bookingMutation = useMutation({
     mutationFn: apiService.bookings.create,
@@ -52,7 +59,6 @@ export const BookingModal = ({ isOpen, onClose, provider }: BookingModalProps) =
       return;
     }
 
-    // Add validation for date
     const bookingDate = new Date(selectedDate);
     const today = new Date();
     if (bookingDate < today) {
@@ -63,7 +69,7 @@ export const BookingModal = ({ isOpen, onClose, provider }: BookingModalProps) =
     const payload = {
       providerId: provider.id.toString(),
       serviceId: selectedService.toString(),
-      date: selectedDate.toISOString().split('T')[0], // Format as YYYY-MM-DD
+      date: selectedDate.toISOString().split('T')[0],
       time: timeSlot,
       location,
       notes: notes || undefined
@@ -106,8 +112,7 @@ export const BookingModal = ({ isOpen, onClose, provider }: BookingModalProps) =
     onClose();
   };
 
-  // Find selected service details
-  const selectedServiceDetails = provider.services.find(
+  const selectedServiceDetails = provider.services?.find(
     service => service.id === selectedService
   );
 
@@ -162,7 +167,7 @@ export const BookingModal = ({ isOpen, onClose, provider }: BookingModalProps) =
           {step === 2 && (
             <div className="space-y-4">
               <div className="grid grid-cols-1 gap-3">
-                {provider.services.map((service) => (
+                {(provider.services ?? []).map((service) => (
                   <div 
                     key={service.id}
                     onClick={() => setSelectedService(service.id)}

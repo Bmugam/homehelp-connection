@@ -29,6 +29,11 @@ import ServicesManagement from './pages/Admin/AdminDashboard/pages/ServicesManag
 import RoleManagement from './pages/Admin/AdminDashboard/pages/RoleManagement';
 import AdminSettings from './pages/Admin/AdminDashboard/pages/AdminSettings';
 import BookingsManagement from "./pages/Admin/AdminDashboard/pages/BookingsManagement";
+import ProviderAppointments from "./pages/provider/Appointments";
+import ProviderMessages from "./pages/provider/Messages";
+import ProviderClients from "./pages/provider/Clients";
+import ProviderSettings from "./pages/provider/Settings";
+import ProviderPayments from "./pages/provider/Payments";
 
 const queryClient = new QueryClient();
 
@@ -86,7 +91,14 @@ const App = () => (
             <Route path="/providers-dashboard/*" element={
               <ProtectedRoute allowedRoles={['provider']}>
                 <ProviderLayout>
-                  <ProviderDashboard />
+                  <Routes>
+                  <Route index element={<ProviderDashboard />} />
+                    <Route path="appointments" element={<ProviderAppointments />} />
+                    <Route path="messages" element={<ProviderMessages />} />
+                    <Route path="clients" element={<ProviderClients />} />
+                    <Route path="settings" element={<ProviderSettings />} />
+                    <Route path="payments" element={<ProviderPayments />} />
+                    </Routes>
                 </ProviderLayout>
               </ProtectedRoute>
             } />

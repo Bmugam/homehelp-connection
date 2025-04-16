@@ -33,9 +33,15 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Logging middleware to log all incoming requests for debugging
+// Enhanced logging middleware
 app.use((req, res, next) => {
-  console.log(`${req.method} ${req.url}`);
+  console.log('--------------------');
+  console.log('Incoming request:');
+  console.log('URL:', req.url);
+  console.log('Method:', req.method);
+  console.log('Headers:', req.headers);
+  console.log('Body:', req.body);
+  console.log('--------------------');
   next();
 });
 
@@ -73,11 +79,17 @@ async function initializeApp() {
   
   // API routes with base prefix
   app.use('/api/auth', authRoutes);
-  app.use('/api/admin', adminRoutes);
   app.use('/api/providers', providerRoutes);
   app.use('/api/services', serviceRoutes);
   app.use('/api/bookings', bookingRoutes);
+  app.use('/api/admin', adminRoutes);
   
+  // Add catch-all route for debugging
+  app.use('*', (req, res) => {
+    console.log('No route matched:', req.originalUrl);
+    res.status(404).json({ message: 'Route not found', path: req.originalUrl });
+  });
+
   // Error handling middleware
   app.use((err, req, res, next) => {
     console.error(err.stack);

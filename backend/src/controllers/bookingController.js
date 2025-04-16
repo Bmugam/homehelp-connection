@@ -188,29 +188,60 @@ const bookingController = {
 
   getProviderAppointments: async (req, res) => {
     const db = req.app.locals.db;
-    const providerId = req.params.providerId;
+    const userId = req.params.providerId; // This is actually the user_id
 
     try {
+      console.log('Getting appointments for user_id:', userId);
+
+      // First get the provider_id from the providers table using user_id
+      const [provider] = await db.query(`
+        SELECT p.id as provider_id 
+        FROM providers p 
+        WHERE p.user_id = ?
+      `, [userId]);
+
+      if (!provider.length) {
+        return res.status(404).json({
+          success: false,
+          message: 'Provider not found'
+        });
+      }
+
+      const providerId = provider[0].provider_id;
+      console.log('Found provider_id:', providerId);
+
+      // Now get the appointments using provider_id
       const [appointments] = await db.query(`
         SELECT 
           b.id,
-          u.first_name as clientName,
+          CONCAT(u.first_name, ' ', u.last_name) as clientName,
           s.name as service,
-          b.date,
+          DATE_FORMAT(b.date, '%Y-%m-%d') as date,
           b.time_slot as time,
           b.location,
-          b.status
+          b.status,
+          c.user_id as client_user_id
         FROM bookings b
-        JOIN users u ON b.client_id = u.id
+        JOIN clients c ON b.client_id = c.id
+        JOIN users u ON c.user_id = u.id
         JOIN services s ON b.service_id = s.id
         WHERE b.provider_id = ?
         ORDER BY b.date DESC, b.time_slot ASC
       `, [providerId]);
 
-      res.json({ data: appointments });
+      console.log(`Found ${appointments.length} appointments for provider`);
+
+      res.json({
+        success: true,
+        data: appointments
+      });
     } catch (error) {
-      console.error('Error fetching provider appointments:', error);
-      res.status(500).json({ message: 'Error fetching appointments' });
+      console.error('Error in getProviderAppointments:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error fetching appointments',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
     }
   },
 

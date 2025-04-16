@@ -11,9 +11,10 @@ const api = axios.create({
   // withCredentials: true
 });
 
-// Request interceptor for adding auth token
+// Add debug logging
 api.interceptors.request.use(
   (config) => {
+    console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`, config.data || '');
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -21,14 +22,23 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
+    console.error('[API Request Error]', error);
     return Promise.reject(error);
   }
 );
 
-// Response interceptor for handling common errors
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log(`[API Response] ${response.status}`, response.data);
+    return response;
+  },
   async (error) => {
+    console.error('[API Error]', {
+      status: error.response?.status,
+      url: error.config?.url,
+      message: error.response?.data?.message || error.message,
+      data: error.response?.data
+    });
     if (error.response) {
       // Handle CORS and other errors
       if (error.response.status === 0 || error.response.status === 401) {
@@ -84,6 +94,25 @@ interface AdminBooking {
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
 }
 
+interface CreateAppointmentDTO {
+  clientName: string;
+  service: string;
+  date: string;
+  time: string;
+  location: string;
+  providerId: string | number;
+}
+
+interface Appointment {
+  id: number;
+  clientName: string;
+  service: string;
+  date: string;
+  time: string;
+  location: string;
+  status: string;
+}
+
 // API service methods
 export const apiService = {
   // Auth endpoints
@@ -110,10 +139,14 @@ export const apiService = {
     getAll: () => api.get('/api/providers'),
     getById: (id: string) => api.get(`/api/providers/${id}`),  // fixed path here
     getByService: (serviceId: string) => api.get(`/api/providers/service/${serviceId}`),
-    getAppointments: (providerId: string | number) => 
-      api.get(`/api/bookings/provider/${providerId}`), // Updated endpoint path
-    updateAppointmentStatus: (id: number, status: string, providerId: string | number) => 
-      api.put(`/api/appointments/${id}/status`, { status, providerId }),
+    getAppointments: (userId: string | number) => 
+      api.get<{ success: boolean; data: Appointment[] }>(`/api/bookings/provider/${userId}`),
+    updateAppointmentStatus: (id: number, status: string, userId: string | number) => 
+      api.put(`/api/bookings/${id}/status`, { status, userId }),
+    createAppointment: (data: CreateAppointmentDTO) => 
+      api.post('/api/bookings', data),
+    deleteAppointment: (appointmentId: number, userId: string | number) => 
+      api.delete(`/api/bookings/${appointmentId}`, { data: { userId } }),
   },
 
   // Bookings endpoints
@@ -129,5 +162,8 @@ export const apiService = {
       getAllForAdmin: () => api.get<AdminBooking[]>('/api/admin/bookings').then(res => res.data),
   },
 };
+
+
+
 
 export default api;

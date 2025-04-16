@@ -39,7 +39,14 @@ const ProviderAppointments = () => {
       const appointmentsData = response?.data?.data || [];
       console.log('Processed appointments data:', appointmentsData);
       
-      setAppointments(appointmentsData);
+      setAppointments(
+        appointmentsData.map((appointment: any) => ({
+          ...appointment,
+          status: ['pending', 'confirmed', 'completed', 'cancelled'].includes(appointment.status)
+            ? appointment.status
+            : 'pending',
+        }))
+      );
     } catch (error) {
       console.error('Error details:', error);
       toast.error('Failed to load appointments');

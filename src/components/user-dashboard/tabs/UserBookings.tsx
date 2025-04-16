@@ -17,16 +17,36 @@ const UserBookings = () => {
       setLoading(true);
       setError(null);
       try {
+        console.log('Fetching user bookings...');
         const res = await apiService.bookings.getUserBookings();
-        const bookingsData = res.data.map((booking: any) => ({
-          id: parseInt(booking.id),
-          service: booking.service?.name ?? 'Unknown Service',
-          provider: booking.provider?.name ?? 'Unknown Provider',
-          date: booking.date,
-          status: booking.status as 'pending' | 'confirmed' | 'completed' | 'cancelled',
-        }));
+        console.log('Raw API response:', res);
+
+        // Validate the response structure
+        if (!res || !res.data) {
+          console.error('Invalid response structure:', res);
+          throw new Error('Invalid response structure');
+        }
+
+        const bookingsData = res.data.map((booking: any) => {
+          console.log('Processing booking:', booking);
+          return {
+            id: parseInt(booking.id),
+            service: booking.service_name || booking.service || 'Unknown Service',
+            provider: booking.provider_name || booking.business_name || 'Unknown Provider',
+            date: booking.date,
+            time: booking.time_slot || booking.time,
+            status: booking.status,
+            providerId: booking.provider_id,
+            serviceId: booking.service_id,
+            location: booking.location,
+            notes: booking.notes
+          };
+        });
+
+        console.log('Transformed bookings:', bookingsData);
         setBookings(bookingsData);
       } catch (err) {
+        console.error('Error fetching bookings:', err);
         setError('Failed to load bookings');
       } finally {
         setLoading(false);
@@ -37,6 +57,7 @@ const UserBookings = () => {
   }, []);
 
   const handleReschedule = async (bookingId: number) => {
+    console.log('Attempting to reschedule booking:', bookingId);
     const newDate = prompt('Enter new date (YYYY-MM-DD):');
     const newTime = prompt('Enter new time (HH:mm):');
     if (!newDate || !newTime) return;

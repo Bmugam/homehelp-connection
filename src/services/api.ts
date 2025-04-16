@@ -6,7 +6,9 @@ const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
-  }
+  },
+  // Remove withCredentials if you're not using cookies
+  // withCredentials: true
 });
 
 // Request interceptor for adding auth token
@@ -27,19 +29,22 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const originalRequest = error.config;
-
     if (error.response) {
-      // Handle 401 Unauthorized errors
-      if (error.response.status === 401 && !originalRequest._retry) {
+      // Handle CORS and other errors
+      if (error.response.status === 0 || error.response.status === 401) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         window.location.href = '/login';
+        return Promise.reject(new Error('Authentication failed'));
       }
-
       return Promise.reject(error.response.data);
     }
-
+    
+    if (error.request) {
+      console.error('Network Error:', error);
+      return Promise.reject(new Error('Network error - please check your connection'));
+    }
+    
     return Promise.reject(error);
   }
 );

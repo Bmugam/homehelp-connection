@@ -17,8 +17,19 @@ const serviceRoutes = require('./routes/serviceRoutes');
 const app = express();
 const PORT = config.PORT;
 
+// CORS configuration
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://your-production-domain.com'] 
+    : ['http://localhost:8080', 'http://127.0.0.1:8080'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: false // Set to true only if using cookies
+};
+
+app.use(cors(corsOptions));
+
 // Middleware
-app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

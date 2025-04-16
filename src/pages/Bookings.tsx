@@ -14,7 +14,13 @@ interface Booking {
   time: string;
   location: string;
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
-  provider_name?: string;
+  provider_name: string; // Make this required instead of optional
+  business_name?: string; // Add this field
+  provider_details?: {    // Add this field
+    name: string;
+    business_name: string;
+    phone?: string;
+  };
   service_name?: string;
 }
 
@@ -22,15 +28,57 @@ const Bookings = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
   useEffect(() => {
     const fetchBookings = async () => {
       try {
+        setError(null);
+        console.log('Fetching bookings...');
         const response = await apiService.bookings.getUserBookings();
-        setBookings(response.data);
-      } catch (error) {
+        console.log('Raw API response:', response);
+        
+        if (!response?.data) {
+          throw new Error('Invalid response structure');
+        }
+
+        const transformedBookings = response.data.map((booking: any) => {
+          console.log('Processing booking:', booking);
+          
+          // Extract provider information
+          const providerName = booking.provider_name 
+            || booking.provider?.name 
+            || booking.business_name 
+            || booking.provider?.business_name;
+            
+          if (!providerName) {
+            console.warn('Missing provider name for booking:', booking.id);
+          }
+
+          return {
+            id: booking.id,
+            providerId: booking.provider_id,
+            serviceId: booking.service_id,
+            date: booking.date,
+            time: booking.time_slot || booking.time,
+            location: booking.location || 'Location not specified',
+            status: booking.status,
+            provider_name: providerName || 'Provider information unavailable',
+            service_name: booking.service_name || booking.service?.name || 'Service unavailable',
+            provider_details: booking.provider ? {
+              name: booking.provider.name,
+              business_name: booking.provider.business_name,
+              phone: booking.provider.phone
+            } : undefined
+          };
+        }).filter(Boolean);
+
+        console.log('Transformed bookings:', transformedBookings);
+        setBookings(transformedBookings);
+      } catch (error: any) {
         console.error('Error fetching bookings:', error);
+        setError(error.message || 'Failed to load bookings');
       } finally {
         setLoading(false);
       }
@@ -76,6 +124,19 @@ const Bookings = () => {
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
+  const renderProviderInfo = (booking: Booking) => (
+    <div className="flex items-center gap-2 text-gray-700 font-medium mt-1">
+      <Calendar className="h-4 w-4" />
+      <span>
+        Provider: {booking.provider_details ? (
+          <span>
+            {booking.provider_details.business_name || booking.provider_details.name}
+          </span>
+        ) : booking.provider_name}
+      </span>
+    </div>
+  );
+
   const filteredBookings = filterStatus 
     ? bookings.filter(booking => booking.status === filterStatus)
     : bookings;
@@ -91,6 +152,22 @@ const Bookings = () => {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
             <p className="text-gray-600 font-medium">Loading your bookings...</p>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto py-12 px-4 max-w-5xl">
+        <div className="text-center text-red-600">
+          <p>{error}</p>
+          <Button 
+            onClick={() => window.location.reload()}
+            className="mt-4"
+          >
+            Try Again
+          </Button>
         </div>
       </div>
     );
@@ -184,10 +261,7 @@ const Bookings = () => {
                       <MapPin className="h-4 w-4" />
                       <span>{booking.location}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-gray-700 font-medium mt-1">
-                      <Calendar className="h-4 w-4" />
-                      <span>Provider: {booking.provider_name || booking.providerId}</span>
-                    </div>
+                    {renderProviderInfo(booking)}
                   </div>
                 </CardContent>
                 <CardFooter className="flex flex-wrap gap-3 pt-2 border-t border-gray-100">

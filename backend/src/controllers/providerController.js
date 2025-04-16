@@ -68,7 +68,74 @@ const getProvidersByService = async (db, serviceId) => {
   }));
 };
 
+const getProviderById = async (db, providerId) => {
+  try {
+    // Get provider basic info
+    const [providers] = await db.query(`
+      SELECT 
+        u.id as user_id,
+        p.id as provider_id,
+        u.first_name,
+        u.last_name,
+        u.email,
+        u.phone_number as phone,
+        u.profile_image,
+        p.location,
+        p.business_name,
+        p.business_description as bio,
+        p.average_rating,
+        p.review_count,
+        p.verification_status
+      FROM users u
+      JOIN providers p ON u.id = p.user_id
+      WHERE p.id = ? AND u.user_type = 'provider'
+    `, [providerId]);
+
+    if (!providers.length) return null;
+
+    const provider = providers[0];
+
+    // Get provider services
+    const [services] = await db.query(`
+      SELECT s.name, ps.price, ps.description
+      FROM provider_services ps
+      JOIN services s ON ps.service_id = s.id
+      WHERE ps.provider_id = ?
+    `, [providerId]);
+
+    // Get provider reviews
+    const [reviews] = await db.query(`
+      SELECT 
+        r.*,
+        u.first_name,
+        u.last_name,
+        u.profile_image
+      FROM reviews r
+      JOIN clients c ON r.client_id = c.id
+      JOIN users u ON c.user_id = u.id
+      WHERE r.provider_id = ?
+      ORDER BY r.created_at DESC
+      LIMIT 5
+    `, [providerId]);
+
+    return {
+      ...provider,
+      name: `${provider.first_name} ${provider.last_name}`,
+      services: services.map(s => s.name),
+      reviews: reviews.map(r => ({
+        ...r,
+        reviewer_name: `${r.first_name} ${r.last_name}`,
+        reviewer_image: r.profile_image
+      }))
+    };
+  } catch (error) {
+    console.error('Error fetching provider details:', error);
+    throw error;
+  }
+};
+
 module.exports = {
   getAllProviders,
-  getProvidersByService
+  getProvidersByService,
+  getProviderById
 };

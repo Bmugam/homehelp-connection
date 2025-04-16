@@ -1,44 +1,36 @@
-
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  MapPin,
-  Star,
-  Phone,
-  Mail,
-  Calendar,
-  ArrowLeft,
-  ThumbsUp,
-  Clock,
-  Award,
-  CheckCircle,
-  User,
-  Briefcase
-} from "lucide-react";
+import { MapPin, Star, Phone, Mail, Calendar, ArrowLeft, ThumbsUp, Clock, Award, CheckCircle, User, Briefcase } from "lucide-react";
 
-// Import sample provider data
-import { providersData } from "@/data/providers";
+import { getProviderById } from "@/services/providerService";
+import type { Provider, Review } from "@/types/provider";
 
 const ProviderDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const [provider, setProvider] = useState<any>(null);
+  const [provider, setProvider] = useState<Provider | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // In a real app, this would be an API call
-    // For now, we'll use our sample data
-    const foundProvider = providersData.find(p => p.id === Number(id));
-    
-    // Simulate API loading
-    const timer = setTimeout(() => {
-      setProvider(foundProvider);
-      setLoading(false);
-    }, 500);
-    
-    return () => clearTimeout(timer);
+    const fetchProvider = async () => {
+      try {
+        setLoading(true);
+        const data = await getProviderById(id!);
+        setProvider(data);
+      } catch (err) {
+        setError('Failed to fetch provider details');
+        console.error('Error fetching provider:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchProvider();
+    }
   }, [id]);
 
   if (loading) {
@@ -47,6 +39,23 @@ const ProviderDetail = () => {
         <div className="flex flex-col items-center justify-center min-h-[50vh]">
           <div className="w-16 h-16 border-4 border-homehelp-900 border-t-transparent rounded-full animate-spin"></div>
           <p className="mt-4 text-homehelp-600">Loading provider information...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-12 text-center">
+        <div className="flex flex-col items-center justify-center min-h-[50vh]">
+          <h2 className="text-2xl font-semibold text-homehelp-900 mb-4">Error</h2>
+          <p className="text-homehelp-600 mb-6">{error}</p>
+          <Link to="/providers">
+            <Button className="bg-homehelp-900 hover:bg-homehelp-800">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Providers
+            </Button>
+          </Link>
         </div>
       </div>
     );
@@ -83,21 +92,31 @@ const ProviderDetail = () => {
             <CardContent className="p-6">
               <div className="flex flex-col items-center">
                 <img 
-                  src={provider.image} 
+                  src={provider.image || '/default-profile.png'} 
                   alt={provider.name}
                   className="w-32 h-32 rounded-full object-cover border-4 border-homehelp-100"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = '/default-profile.png';
+                  }}
                 />
-                <h1 className="text-2xl font-bold text-homehelp-900 mt-4">{provider.name}</h1>
+                <h1 className="text-2xl font-bold text-homehelp-900 mt-4">
+                  {provider.name || 'Unknown Provider'}
+                </h1>
                 
                 <div className="flex items-center gap-1 text-amber-500 mt-2">
                   <Star className="w-5 h-5 fill-current" />
-                  <span className="font-medium">{provider.rating}</span>
-                  <span className="text-homehelp-500 text-sm">({provider.reviews} reviews)</span>
+                  <span className="font-medium">
+                    {typeof provider.rating === 'number' ? provider.rating.toFixed(1) : 'N/A'}
+                  </span>
+                  <span className="text-homehelp-500 text-sm">
+                    ({provider.reviews ?? 0} reviews)
+                  </span>
                 </div>
                 
                 <div className="flex items-center gap-1 text-homehelp-600 text-sm mt-1">
                   <MapPin className="w-4 h-4" />
-                  <span>{provider.location}</span>
+                  <span>{provider.location || 'Location not specified'}</span>
                 </div>
                 
                 <div className="w-full border-t border-homehelp-100 my-4"></div>

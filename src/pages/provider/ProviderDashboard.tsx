@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Card } from '../../components/ui/card';
 
 import {
   BarChart,
@@ -15,69 +15,73 @@ import {
 } from "lucide-react";
 
 import { Link } from 'react-router-dom';
+import { apiService } from '../../services/api';
 
 const ProviderDashboard = () => {
   const { user } = useAuth();
 
-  // Dummy data for the dashboard
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [providers, setProviders] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchProviders = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await apiService.providers.getAll();
+        const data = response.data as any[]; // Explicitly cast the response data to an array
+        setProviders(data);
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load providers data';
+        setError(errorMessage);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProviders();
+  }, []);
+
+  // Example stats derived from providers data or placeholders
   const stats = [
     {
-      title: "Total Appointments",
-      value: "156",
-      icon: CalendarClock,
-      change: "+12% from last month",
+      title: "Total Providers",
+      value: providers.length.toString(),
+      icon: Users,
+      change: "+5% from last month",
       positive: true,
     },
     {
-      title: "Completed Jobs",
-      value: "142",
-      icon: CheckCircle2,
-      change: "+8% from last month",
-      positive: true,
-    },
-    {
-      title: "Cancelled Jobs",
-      value: "14",
-      icon: XCircle,
-      change: "-3% from last month",
+      title: "Average Rating",
+      value: providers.length > 0 ? (providers.reduce((acc, p) => acc + (p.average_rating || 0), 0) / providers.length).toFixed(1) : "N/A",
+      icon: Star,
+      change: "+3% from last month",
       positive: true,
     },
     {
       title: "Total Earnings",
-      value: "$12,450",
+      value: "$12,450", // Placeholder, replace with real data if available
       icon: DollarSign,
       change: "+15% from last month",
       positive: true,
     },
+    {
+      title: "Cancelled Jobs",
+      value: "14", // Placeholder, replace with real data if available
+      icon: XCircle,
+      change: "-3% from last month",
+      positive: false,
+    },
   ];
 
-  // Upcoming appointments data
-  const upcomingAppointments = [
-    {
-      id: 1,
-      client: "James Wilson",
-      service: "Plumbing Repair",
-      date: "2023-11-15T10:00:00",
-      status: "Confirmed",
-      address: "123 Main St, Nairobi"
-    },
-    {
-      id: 2,
-      client: "Maria Johnson",
-      service: "Electrical Work",
-      date: "2023-11-16T14:30:00",
-      status: "Pending",
-      address: "456 Oak Ave, Nairobi"
-    },
-    {
-      id: 3,
-      client: "Robert Smith",
-      service: "House Cleaning",
-      date: "2023-11-17T09:00:00",
-      status: "Confirmed",
-      address: "789 Pine Rd, Nairobi"
-    }
-  ];
+  if (loading) {
+    return <div>Loading provider data...</div>;
+  }
+
+  if (error) {
+    return <div className="text-red-600">{error}</div>;
+  }
 
   return (
     <div>
@@ -129,37 +133,14 @@ const ProviderDashboard = () => {
           </div>
           
           <div className="space-y-4">
-            {upcomingAppointments.map((appointment) => (
-              <div key={appointment.id} className="border rounded-lg p-4">
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h3 className="font-medium text-homehelp-900">{appointment.client}</h3>
-                    <p className="text-homehelp-600 text-sm">{appointment.service}</p>
-                  </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    appointment.status === "Confirmed" 
-                      ? "bg-green-100 text-green-800" 
-                      : "bg-yellow-100 text-yellow-800"
-                  }`}>
-                    {appointment.status}
-                  </span>
-                </div>
-                <div className="flex items-center text-sm text-homehelp-600 mb-3">
-                  <Clock className="h-4 w-4 mr-1" />
-                  {new Date(appointment.date).toLocaleString('en-US', { 
-                    dateStyle: 'medium', 
-                    timeStyle: 'short' 
-                  })}
-                </div>
-                <p className="text-sm text-homehelp-600 mb-3">
-                  Address: {appointment.address}
-                </p>
-                <div className="flex space-x-2">
-                  <Button variant="outline" size="sm">Contact Client</Button>
-                  <Button size="sm">Details</Button>
+            {/* Placeholder for appointments - to be replaced with real data */}
+            <div className="border rounded-lg p-4">
+              <div className="flex justify-between items-start mb-3">
+                <div>
+                  <h3 className="font-medium text-homehelp-900">No upcoming appointments</h3>
                 </div>
               </div>
-            ))}
+            </div>
           </div>
         </Card>
 
@@ -205,7 +186,7 @@ const ProviderDashboard = () => {
                 <div className="flex-1 bg-homehelp-100 h-2 rounded-full mx-2">
                   <div className="bg-amber-400 h-2 rounded-full" style={{ width: "3%" }}></div>
                 </div>
-                <span className="text-sm text-homehelp-600">3%</span>
+                <span className="text-homehelp-600">3%</span>
               </div>
               <div className="flex items-center">
                 <span className="text-sm text-homehelp-600 w-16">1 star</span>

@@ -8,7 +8,10 @@ const { setupDatabase, createConnectionPool } = require('./config/database');
 const config = require('./config/config');
 require('dotenv').config();
 const adminRoutes = require('./routes/adminRoutes');
-const providerRoutes = require('./routes/providerRoutes'); // Added provider routes
+const providerRoutes = require('./routes/providerRoutes');
+const bookingRoutes = require('./routes/bookingRoutes');
+const authRoutes = require('./routes/authRoutes');
+const serviceRoutes = require('./routes/serviceRoutes');
 
 // Initialize Express app
 const app = express();
@@ -58,12 +61,12 @@ async function initializeApp() {
   });
   
   // API routes with base prefix
-  app.use('/api/auth', require('./routes/authRoutes'));
+  app.use('/api/auth', authRoutes);
   app.use('/api/admin', adminRoutes);
   app.use('/api/providers', providerRoutes);
-  app.use('/api/bookings', require('./routes/bookingRoutes'));
-  app.use('/api/services', require('./routes/servicesRoutes'));
-   // Add this back after creating the file
+  app.use('/api/services', serviceRoutes);
+  app.use('/api/bookings', bookingRoutes);
+  
   // Error handling middleware
   app.use((err, req, res, next) => {
     console.error(err.stack);
@@ -93,3 +96,5 @@ initializeApp().catch(err => {
   console.error('Failed to initialize application:', err);
   process.exit(1);
 });
+
+module.exports = app;

@@ -9,4 +9,10 @@ router.post('/', authenticateToken, bookingController.createBooking);
 // Get user bookings
 router.get('/', authenticateToken, bookingController.getUserBookings);
 
+// Provider appointments
+router.get('/provider/:providerId/appointments', authenticateToken, bookingController.getProviderAppointments);
+
+// Get all bookings
+router.get('/all', authenticateToken, bookingController.getAllBookings);
+
 module.exports = router;

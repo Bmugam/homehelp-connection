@@ -103,8 +103,12 @@ export const apiService = {
   // Providers endpoints
   providers: {
     getAll: () => api.get('/api/providers'),
-    getById: (id: string) => api.get(`/providers/${id}`),
+    getById: (id: string) => api.get(`/api/providers/${id}`),  // fixed path here
     getByService: (serviceId: string) => api.get(`/api/providers/service/${serviceId}`),
+    getAppointments: (providerId: string | number) => 
+      api.get(`/api/bookings/provider/${providerId}`), // Updated endpoint path
+    updateAppointmentStatus: (id: number, status: string, providerId: string | number) => 
+      api.put(`/api/appointments/${id}/status`, { status, providerId }),
   },
 
   // Bookings endpoints

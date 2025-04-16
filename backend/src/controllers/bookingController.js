@@ -184,6 +184,127 @@ const bookingController = {
       console.error('Error deleting booking:', error);
       res.status(500).json({ message: 'Error deleting booking' });
     }
+  },
+
+  getProviderAppointments: async (req, res) => {
+    const db = req.app.locals.db;
+    const providerId = req.params.providerId;
+
+    try {
+      const [appointments] = await db.query(`
+        SELECT 
+          b.id,
+          u.first_name as clientName,
+          s.name as service,
+          b.date,
+          b.time_slot as time,
+          b.location,
+          b.status
+        FROM bookings b
+        JOIN users u ON b.client_id = u.id
+        JOIN services s ON b.service_id = s.id
+        WHERE b.provider_id = ?
+        ORDER BY b.date DESC, b.time_slot ASC
+      `, [providerId]);
+
+      res.json({ data: appointments });
+    } catch (error) {
+      console.error('Error fetching provider appointments:', error);
+      res.status(500).json({ message: 'Error fetching appointments' });
+    }
+  },
+
+  updateAppointmentStatus: async (req, res) => {
+    const db = req.app.locals.db;
+    const { id } = req.params;
+    const { status } = req.body;
+    const providerId = req.user.id;
+
+    try {
+      // Verify the appointment belongs to this provider
+      const [booking] = await db.query(
+        'SELECT * FROM bookings WHERE id = ? AND provider_id = ?',
+        [id, providerId]
+      );
+
+      if (!booking.length) {
+        return res.status(404).json({ message: 'Appointment not found' });
+      }
+
+      await db.query(
+        'UPDATE bookings SET status = ? WHERE id = ?',
+        [status, id]
+      );
+
+      // Create notification for client
+      await db.query(
+        `INSERT INTO notifications (user_id, type, content)
+         VALUES (?, 'booking_update', ?)`,
+        [
+          booking[0].client_id,
+          `Your booking has been ${status}`
+        ]
+      );
+
+      res.json({ message: 'Appointment status updated successfully' });
+    } catch (error) {
+      console.error('Error updating appointment status:', error);
+      res.status(500).json({ message: 'Error updating appointment status' });
+    }
+  },
+
+  rescheduleBooking: async (req, res) => {
+    const db = req.app.locals.db;
+    const { id } = req.params;
+    const { date, time } = req.body;
+    const userId = req.user.id;
+
+    try {
+      const [booking] = await db.query(
+        'SELECT * FROM bookings WHERE id = ? AND (client_id = ? OR provider_id = ?)',
+        [id, userId, userId]
+      );
+
+      if (!booking.length) {
+        return res.status(404).json({ message: 'Booking not found' });
+      }
+
+      await db.query(
+        'UPDATE bookings SET date = ?, time_slot = ? WHERE id = ?',
+        [date, time, id]
+      );
+
+      // Notify other party about reschedule
+      const notifyUserId = userId === booking[0].client_id 
+        ? booking[0].provider_id 
+        : booking[0].client_id;
+
+      await db.query(
+        `INSERT INTO notifications (user_id, type, content)
+         VALUES (?, 'booking_rescheduled', ?)`,
+        [
+          notifyUserId,
+          `Booking #${id} has been rescheduled to ${date} at ${time}`
+        ]
+      );
+
+      res.json({ message: 'Booking rescheduled successfully' });
+    } catch (error) {
+      console.error('Error rescheduling booking:', error);
+      res.status(500).json({ message: 'Error rescheduling booking' });
+    }
+  },
+
+  getAllBookings: async (req, res) => {
+    try {
+      const bookings = await Booking.findAll({
+        include: ['user', 'provider']
+      });
+      res.json(bookings);
+    } catch (error) {
+      console.error('Error fetching bookings:', error);
+      res.status(500).json({ message: 'Error fetching bookings' });
+    }
   }
 };
 

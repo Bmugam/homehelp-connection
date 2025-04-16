@@ -146,7 +146,7 @@ export const apiService = {
     createAppointment: (data: CreateAppointmentDTO) => 
       api.post('/api/bookings', data),
     deleteAppointment: (appointmentId: number, userId: string | number) => 
-      api.delete(`/api/bookings/${appointmentId}`, { data: { userId } }),
+      api.request({ url: `/api/bookings/${appointmentId}`, method: 'DELETE', data: { userId } }),
   },
 
   // Bookings endpoints

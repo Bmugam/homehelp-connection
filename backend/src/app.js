@@ -12,6 +12,7 @@ const providerRoutes = require('./routes/providerRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
 const authRoutes = require('./routes/authRoutes');
 const serviceRoutes = require('./routes/serviceRoutes');
+const clientRoutes = require('./routes/clientRoutes');
 
 // Initialize Express app
 const app = express();
@@ -83,6 +84,7 @@ async function initializeApp() {
   app.use('/api/services', serviceRoutes);
   app.use('/api/bookings', bookingRoutes);
   app.use('/api/admin', adminRoutes);
+  app.use('/api/clients', clientRoutes);
   
   // Add catch-all route for debugging
   app.use('*', (req, res) => {

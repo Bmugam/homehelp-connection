@@ -113,6 +113,21 @@ interface Appointment {
   status: string;
 }
 
+interface Client {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  avatar: string;
+  jobsCompleted: number;
+  lastService: string;
+  lastServiceDate: string;
+  rating: number;
+  favorites: boolean;
+  status: 'active' | 'inactive';
+}
+
 // API service methods
 export const apiService = {
   // Auth endpoints
@@ -150,20 +165,35 @@ export const apiService = {
   },
 
   // Bookings endpoints
-    bookings: {
-      getUserBookings: () => api.get<Booking[]>('/api/bookings'),
-      getById: (id: string) => api.get<Booking>(`/api/bookings/${id}`),
-      create: (data: BookingCreate) => api.post<Booking>('/api/bookings', data),
-      update: (id: string, data: BookingUpdate) => api.put<Booking>(`/api/bookings/${id}`, data),
-      cancel: (id: string, reason?: string) => 
-        api.request({ url: `/api/bookings/${id}`, method: 'DELETE', data: { reason } }),
-      reschedule: (id: string, newDate: string, newTime: string) =>
-        api.patch<Booking>(`/api/bookings/${id}/reschedule`, { date: newDate, time: newTime }),
-      getAllForAdmin: () => api.get<AdminBooking[]>('/api/admin/bookings').then(res => res.data),
+  bookings: {
+    getUserBookings: () => api.get<Booking[]>('/api/bookings'),
+    getById: (id: string) => api.get<Booking>(`/api/bookings/${id}`),
+    create: (data: BookingCreate) => api.post<Booking>('/api/bookings', data),
+    update: (id: string, data: BookingUpdate) => api.put<Booking>(`/api/bookings/${id}`, data),
+    cancel: (id: string, reason?: string) => 
+      api.request({ url: `/api/bookings/${id}`, method: 'DELETE', data: { reason } }),
+    reschedule: (id: string, newDate: string, newTime: string) =>
+      api.patch<Booking>(`/api/bookings/${id}/reschedule`, { date: newDate, time: newTime }),
+    getAllForAdmin: () => api.get<AdminBooking[]>('/api/admin/bookings').then(res => res.data),
+  },
+
+  // Clients endpoints
+  clients: {
+    getAll: (providerId: string | number) => 
+      api.get<Client[]>(`/api/clients/provider/${providerId}`), // Updated path
+    getById: (clientId: number) => 
+      api.get<Client>(`/api/clients/${clientId}`),
+    create: (data: Omit<Client, 'id'>) => 
+      api.post<Client>('/api/clients', data),
+    update: (clientId: number, data: Partial<Client>) => 
+      api.put<Client>(`/api/clients/${clientId}`, data),
+    delete: (clientId: number) => 
+      api.delete(`/api/clients/${clientId}`),
+    toggleFavorite: (clientId: number) => 
+      api.post(`/api/clients/${clientId}/favorite`),
+    updateStatus: (clientId: number, status: 'active' | 'inactive') => 
+      api.put(`/api/clients/${clientId}/status`, { status }),
   },
 };
-
-
-
 
 export default api;

@@ -248,47 +248,47 @@ async function createTables() {
 }
 
 // Insert default/seed data (basic examples)
-async function insertSeedData() {
-  try {
-    const connection = await mysql.createConnection({
-      ...dbConfig,
-      database: config.DB.DATABASE
-    });
+// async function insertSeedData() {
+//   try {
+//     const connection = await mysql.createConnection({
+//       ...dbConfig,
+//       database: config.DB.DATABASE
+//     });
 
-    // Default service categories
-    const serviceCategories = [
-      { name: 'House Cleaning', description: 'Professional cleaning services for homes', category: 'Cleaning', image: '/images/services/cleaning.jpg' },
-      { name: 'Plumbing', description: 'Plumbing repairs and installations', category: 'Maintenance', image: '/images/services/plumbing.jpg' },
-      { name: 'Electrical', description: 'Electrical repairs and installations', category: 'Maintenance', image: '/images/services/electrical.jpg' },
-      { name: 'Gardening', description: 'Garden maintenance and landscaping', category: 'Outdoor', image: '/images/services/gardening.jpg' }
-    ];
+//     // Default service categories
+//     const serviceCategories = [
+//       { name: 'House Cleaning', description: 'Professional cleaning services for homes', category: 'Cleaning', image: '/images/services/cleaning.jpg' },
+//       { name: 'Plumbing', description: 'Plumbing repairs and installations', category: 'Maintenance', image: '/images/services/plumbing.jpg' },
+//       { name: 'Electrical', description: 'Electrical repairs and installations', category: 'Maintenance', image: '/images/services/electrical.jpg' },
+//       { name: 'Gardening', description: 'Garden maintenance and landscaping', category: 'Outdoor', image: '/images/services/gardening.jpg' }
+//     ];
 
-    // Insert service categories
-    for (const service of serviceCategories) {
-      await connection.query(`
-        INSERT INTO services (name, description, category, image)
-        VALUES (?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE 
-        description = VALUES(description),
-        image = VALUES(image)
-      `, [service.name, service.description, service.category, service.image]);
-    }
-    console.log('Seed data inserted successfully');
+//     // Insert service categories
+//     for (const service of serviceCategories) {
+//       await connection.query(`
+//         INSERT INTO services (name, description, category, image)
+//         VALUES (?, ?, ?, ?)
+//         ON DUPLICATE KEY UPDATE 
+//         description = VALUES(description),
+//         image = VALUES(image)
+//       `, [service.name, service.description, service.category, service.image]);
+//     }
+//     console.log('Seed data inserted successfully');
 
-    await connection.end();
-    return true;
-  } catch (err) {
-    console.error('Error inserting seed data:', err);
-    throw err;
-  }
-}
+//     await connection.end();
+//     return true;
+//   } catch (err) {
+//     console.error('Error inserting seed data:', err);
+//     throw err;
+//   }
+// }
 
 // Main function to run setup
 async function setupDatabase() {
   try {
     await createDatabase();
     await createTables();
-    await insertSeedData();
+    // await insertSeedData();
     console.log('Database setup completed successfully');
     return true;
   } catch (err) {

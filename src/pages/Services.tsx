@@ -266,19 +266,19 @@ const Services = () => {
                         {service.description}
                       </p>
                       <div className="flex items-center justify-between">
-                        {service.providers.length > 0 && (
-                          <>
-                            <span className="font-medium">
-                              ${service.providers[0].price.toFixed(2)}
-                            </span>
-                            <div className="flex items-center space-x-1">
-                              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                              <span className="text-sm">
-                                {service.providers[0].average_rating} ({service.providers[0].review_count})
-                              </span>
-                            </div>
-                          </>
-                        )}
+{Array.isArray(service.providers) && service.providers.length > 0 && (
+  <>
+    <span className="font-medium">
+      ${service.providers[0].price.toFixed(2)}
+    </span>
+    <div className="flex items-center space-x-1">
+      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+      <span className="text-sm">
+        {service.providers[0].average_rating} ({service.providers[0].review_count})
+      </span>
+    </div>
+  </>
+)}
                       </div>
                       <div className="flex flex-wrap gap-1 mt-3">
                         <span

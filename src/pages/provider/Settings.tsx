@@ -1,49 +1,75 @@
-import React, { useState, useEffect } from 'react';
+ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/components/ui/use-toast";
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/components/ui/use-toast';
 import {
   User,
   Bell,
   Shield,
   Clock,
-  CreditCard,
-  CalendarRange,
   Save,
   Mail,
   Phone,
   MapPin,
   Briefcase,
-  Star
+  Star,
+  CalendarRange
 } from "lucide-react";
+import {
+  getProviderById,
+  getProviderServices,
+  updateProviderProfile,
+  updateProviderAvailability,
+  addProviderService,
+  updateProviderService
+} from '@/services/providerService';
 
 const ProviderSettings = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  
-  // Profile form state - matching users and providers tables
+
+  // Helper function to convert { weekdays, weekends } to AvailabilityHours
+  const convertToAvailabilityHours = (availability) => {
+    const defaultStart = "08:00";
+    const defaultEnd = "17:00";
+    const dayAvailability = (active) => ({
+      active,
+      start: defaultStart,
+      end: defaultEnd
+    });
+
+    return {
+      monday: dayAvailability(availability.weekdays),
+      tuesday: dayAvailability(availability.weekdays),
+      wednesday: dayAvailability(availability.weekdays),
+      thursday: dayAvailability(availability.weekdays),
+      friday: dayAvailability(availability.weekdays),
+      saturday: dayAvailability(availability.weekends),
+      sunday: dayAvailability(availability.weekends)
+    };
+  };
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
   const [profileForm, setProfileForm] = useState({
-    // From users table
     email: user?.email || "",
     phone_number: user?.phone || "",
-    first_name: user?.first_name  || "",
-    last_name: user?.last_name || "",
+    first_name: user?.first_name || "",
+    last_name: user?.last_name  || "",
     profile_image: user?.profile_image || "",
-    
-    // From providers table
     business_name: "",
     business_description: "",
     location: "",
     verification_status: "pending"
   });
 
-  // Availability hours state - matching JSON in providers table
   const [availabilityHours, setAvailabilityHours] = useState({
     monday: { active: true, start: "08:00", end: "17:00" },
     tuesday: { active: true, start: "08:00", end: "17:00" },
@@ -54,7 +80,6 @@ const ProviderSettings = () => {
     sunday: { active: false, start: "09:00", end: "15:00" }
   });
 
-  // Services provided - matching provider_services relation
   const [services, setServices] = useState([]);
   const [selectedService, setSelectedService] = useState(null);
   const [serviceForm, setServiceForm] = useState({
@@ -67,13 +92,41 @@ const ProviderSettings = () => {
     }
   });
 
-  // Notification settings
   const [notificationSettings, setNotificationSettings] = useState({
     email_notifications: true,
     sms_notifications: true,
     booking_updates: true,
     payment_alerts: true
   });
+
+
+  useEffect(() => {
+    const fetchProviderData = async () => {
+      if (!user?.id) return;
+      setLoading(true);
+      setError(null);
+      try {
+        const providerData = await getProviderById(user.id.toString());
+        setProfileForm(prev => ({
+          ...prev,
+          business_name: providerData.business_name || "",
+          business_description: providerData.bio || "",
+          location: providerData.location || "",
+          verification_status: providerData.verification_status || "pending"
+        }));
+        if (providerData.availability_hours) {
+          setAvailabilityHours(providerData.availability_hours);
+        }
+        const providerServices = await getProviderServices(user.id.toString());
+        setServices(providerServices);
+      } catch (err) {
+        setError("Failed to load provider data.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProviderData();
+  }, [user?.id]);
 
   const handleProfileChange = (e) => {
     const { name, value } = e.target;
@@ -118,27 +171,66 @@ const ProviderSettings = () => {
     }));
   };
 
-  const handleSaveSettings = (section) => {
-    // Here you would connect to your backend API
-    // For example: axios.put('/api/provider/settings/profile', profileForm)
-    
-    toast({
-      title: "Settings saved",
-      description: `Your ${section} settings have been updated successfully.`,
-    });
+  const handleSaveSettings = async (section) => {
+    if (!user?.id) {
+      toast({
+        title: "Error",
+        description: "User not authenticated.",
+        variant: "destructive"
+      });
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      if (section === 'profile') {
+        await updateProviderProfile(user.id.toString(), {
+          business_name: profileForm.business_name,
+          business_description: profileForm.business_description,
+          location: profileForm.location
+        });
+      } else if (section === 'availability') {
+        await updateProviderAvailability(user.id.toString(), {
+          availability_hours: availabilityHours
+        });
+      } else if (section === 'services') {
+        if (serviceForm.service_id) {
+          const availabilityHoursObj = convertToAvailabilityHours(serviceForm.availability);
+          if (selectedService) {
+            await updateProviderService(user.id.toString(), selectedService.id, {
+              price: serviceForm.price,
+              description: serviceForm.description,
+              availability: availabilityHoursObj
+            });
+          } else {
+            await addProviderService(user.id.toString(), {
+              service_id: Number(serviceForm.service_id),
+              price: serviceForm.price,
+              description: serviceForm.description,
+              availability: availabilityHoursObj
+            });
+          }
+          const updatedServices = await getProviderServices(user.id.toString());
+          setServices(updatedServices);
+        }
+      } else if (section === 'notification') {
+        // No backend support, keep local state only
+      }
+      toast({
+        title: "Settings saved",
+        description: `Your ${section} settings have been updated successfully.`,
+      });
+    } catch (err) {
+      setError(`Failed to save ${section} settings.`);
+      toast({
+        title: "Error",
+        description: `Failed to save ${section} settings.`,
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
-
-  // Mock function to load provider data
-  useEffect(() => {
-    // In a real app, you would fetch this data from your backend
-    // For example:
-    // const fetchProviderData = async () => {
-    //   const response = await axios.get('/api/provider/profile');
-    //   setProfileForm({...response.data});
-    //   setAvailabilityHours(JSON.parse(response.data.availability_hours));
-    // };
-    // fetchProviderData();
-  }, []);
 
   return (
     <div>
@@ -306,21 +398,22 @@ const ProviderSettings = () => {
             
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Service card example */}
-                <Card className="p-4 border border-homehelp-200">
-                  <div className="flex justify-between">
-                    <h3 className="font-medium text-homehelp-900">Plumbing Service</h3>
-                    <div className="flex gap-1 text-yellow-500">
-                      <Star className="h-4 w-4 fill-yellow-500" />
-                      <span className="text-sm font-medium">4.8</span>
+                {services.map((service) => (
+                  <Card key={service.id} className="p-4 border border-homehelp-200">
+                    <div className="flex justify-between">
+                      <h3 className="font-medium text-homehelp-900">{service.name}</h3>
+                      <div className="flex gap-1 text-yellow-500">
+                        <Star className="h-4 w-4 fill-yellow-500" />
+                        <span className="text-sm font-medium">4.8</span>
+                      </div>
                     </div>
-                  </div>
-                  <p className="text-homehelp-600 text-sm mt-1 mb-3">Pipe repairs, installations, drain cleaning</p>
-                  <div className="flex justify-between items-center">
-                    <span className="text-lg font-semibold text-homehelp-900">KSh 2,500</span>
-                    <Button variant="outline" size="sm">Edit</Button>
-                  </div>
-                </Card>
+                    <p className="text-homehelp-600 text-sm mt-1 mb-3">{service.description}</p>
+                    <div className="flex justify-between items-center">
+                      <span className="text-lg font-semibold text-homehelp-900">KSh {service.price}</span>
+                      <Button variant="outline" size="sm">Edit</Button>
+                    </div>
+                  </Card>
+                ))}
                 
                 {/* Add new service card */}
                 <Card className="p-4 border border-dashed border-homehelp-300 flex flex-col items-center justify-center text-homehelp-500 h-full">

@@ -1,7 +1,18 @@
 const express = require('express');
 const router = express.Router();
-const { getAllProviders, getProvidersByService, getProviderById } = require('../controllers/providerController');
+const {
+  getAllProviders,
+  getProvidersByService,
+  getProviderById,
+  getProviderServices,
+  addProviderService,
+  updateProviderService,
+  deleteProviderService,
+  updateProviderProfile,
+  updateProviderAvailability
+} = require('../controllers/providerController');
 
+// Existing routes
 router.get('/', async (req, res) => {
   try {
     const providers = await getAllProviders(req.app.locals.db);
@@ -32,6 +43,69 @@ router.get('/:id', async (req, res) => {
   } catch (error) {
     console.error('Error in provider route:', error);
     res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// New routes for provider services
+router.get('/:id/services', async (req, res) => {
+  try {
+    const services = await getProviderServices(req.app.locals.db, req.params.id);
+    res.json(services);
+  } catch (error) {
+    console.error('Error fetching provider services:', error);
+    res.status(500).json({ message: 'Error fetching provider services' });
+  }
+});
+
+router.post('/:id/services', async (req, res) => {
+  try {
+    const newService = await addProviderService(req.app.locals.db, req.params.id, req.body);
+    res.status(201).json(newService);
+  } catch (error) {
+    console.error('Error adding provider service:', error);
+    res.status(500).json({ message: 'Error adding provider service' });
+  }
+});
+
+router.put('/:id/services/:serviceId', async (req, res) => {
+  try {
+    const updatedService = await updateProviderService(req.app.locals.db, req.params.id, req.params.serviceId, req.body);
+    res.json(updatedService);
+  } catch (error) {
+    console.error('Error updating provider service:', error);
+    res.status(500).json({ message: 'Error updating provider service' });
+  }
+});
+
+router.delete('/:id/services/:serviceId', async (req, res) => {
+  try {
+    await deleteProviderService(req.app.locals.db, req.params.id, req.params.serviceId);
+    res.status(204).send();
+  } catch (error) {
+    console.error('Error deleting provider service:', error);
+    res.status(500).json({ message: 'Error deleting provider service' });
+  }
+});
+
+// Route to update provider profile
+router.put('/:id', async (req, res) => {
+  try {
+    const updatedProvider = await updateProviderProfile(req.app.locals.db, req.params.id, req.body);
+    res.json(updatedProvider);
+  } catch (error) {
+    console.error('Error updating provider profile:', error);
+    res.status(500).json({ message: 'Error updating provider profile' });
+  }
+});
+
+// Route to update provider availability
+router.put('/:id/availability', async (req, res) => {
+  try {
+    const updatedAvailability = await updateProviderAvailability(req.app.locals.db, req.params.id, req.body);
+    res.json(updatedAvailability);
+  } catch (error) {
+    console.error('Error updating provider availability:', error);
+    res.status(500).json({ message: 'Error updating provider availability' });
   }
 });
 

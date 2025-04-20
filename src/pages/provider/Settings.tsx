@@ -58,11 +58,23 @@ const ProviderSettings = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Helper function to split full name into first and last names
+  const splitName = (fullName) => {
+    if (!fullName) return { first_name: "", last_name: "" };
+    const parts = fullName.trim().split(" ");
+    return {
+      first_name: parts[0] || "",
+      last_name: parts.slice(1).join(" ") || ""
+    };
+  };
+
+  const { first_name, last_name } = splitName(user?.name);
+
   const [profileForm, setProfileForm] = useState({
     email: user?.email || "",
     phone_number: user?.phone || "",
-    first_name: user?.first_name || "",
-    last_name: user?.last_name  || "",
+    first_name: first_name,
+    last_name: last_name,
     profile_image: user?.profile_image || "",
     business_name: "",
     business_description: "",
@@ -91,6 +103,84 @@ const ProviderSettings = () => {
       weekends: true
     }
   });
+
+  const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
+
+  const openAddServiceModal = () => {
+    setSelectedService(null);
+    setServiceForm({
+      service_id: "",
+      price: "",
+      description: "",
+      availability: {
+        weekdays: true,
+        weekends: true
+      }
+    });
+    setIsServiceModalOpen(true);
+  };
+
+  const openEditServiceModal = (service) => {
+    setSelectedService(service);
+    setServiceForm({
+      service_id: service.service_id?.toString() || "",
+      price: service.price || "",
+      description: service.description || "",
+      availability: {
+        weekdays: service.availability?.weekdays ?? true,
+        weekends: service.availability?.weekends ?? true
+      }
+    });
+    setIsServiceModalOpen(true);
+  };
+
+  const closeServiceModal = () => {
+    setIsServiceModalOpen(false);
+  };
+
+  const handleServiceFormSubmit = async () => {
+    if (!user?.id) {
+      toast({
+        title: "Error",
+        description: "User not authenticated.",
+        variant: "destructive"
+      });
+      return;
+    }
+    setLoading(true);
+    try {
+      const availabilityHoursObj = convertToAvailabilityHours(serviceForm.availability);
+      if (selectedService) {
+        await updateProviderService(user.id.toString(), selectedService.id, {
+          price: serviceForm.price,
+          description: serviceForm.description,
+          availability: availabilityHoursObj
+        });
+      } else {
+        await addProviderService(user.id.toString(), {
+          service_id: Number(serviceForm.service_id),
+          price: serviceForm.price,
+          description: serviceForm.description,
+          availability: availabilityHoursObj
+        });
+      }
+      const updatedServices = await getProviderServices(user.id.toString());
+      setServices(updatedServices);
+      toast({
+        title: "Success",
+        description: `Service ${selectedService ? "updated" : "added"} successfully.`,
+      });
+      closeServiceModal();
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: `Failed to ${selectedService ? "update" : "add"} service.`,
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const [notificationSettings, setNotificationSettings] = useState({
     email_notifications: true,
@@ -184,7 +274,10 @@ const ProviderSettings = () => {
     setError(null);
     try {
       if (section === 'profile') {
+        // Combine first_name and last_name into full name
+        const fullName = `${profileForm.first_name} ${profileForm.last_name}`.trim();
         await updateProviderProfile(user.id.toString(), {
+          name: fullName,
           business_name: profileForm.business_name,
           business_description: profileForm.business_description,
           location: profileForm.location
@@ -410,7 +503,7 @@ const ProviderSettings = () => {
                     <p className="text-homehelp-600 text-sm mt-1 mb-3">{service.description}</p>
                     <div className="flex justify-between items-center">
                       <span className="text-lg font-semibold text-homehelp-900">KSh {service.price}</span>
-                      <Button variant="outline" size="sm">Edit</Button>
+                      <Button variant="outline" size="sm" onClick={() => openEditServiceModal(service)}>Edit</Button>
                     </div>
                   </Card>
                 ))}
@@ -419,82 +512,85 @@ const ProviderSettings = () => {
                 <Card className="p-4 border border-dashed border-homehelp-300 flex flex-col items-center justify-center text-homehelp-500 h-full">
                   <div className="text-center">
                     <p className="mb-2">Add a new service</p>
-                    <Button variant="outline">+ Add Service</Button>
+                    <Button variant="outline" onClick={openAddServiceModal}>+ Add Service</Button>
                   </div>
                 </Card>
               </div>
               
-              {/* Service form (would be shown in a modal or expanded section) */}
-              <div className="mt-8 hidden">
-                <h3 className="text-lg font-medium text-homehelp-800 mb-4">Add/Edit Service</h3>
-                
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="service_id">Service Type</Label>
-                    <select 
-                      id="service_id"
-                      name="service_id"
-                      value={serviceForm.service_id}
-                      onChange={handleServiceFormChange}
-                      className="w-full rounded-md border border-input px-3 py-2"
-                    >
-                      <option value="">-- Select Service Type --</option>
-                      <option value="1">House Cleaning</option>
-                      <option value="2">Plumbing</option>
-                      <option value="3">Electrical</option>
-                      <option value="4">Gardening</option>
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="price">Price (KSh)</Label>
-                    <Input 
-                      id="price" 
-                      name="price" 
-                      type="number"
-                      value={serviceForm.price} 
-                      onChange={handleServiceFormChange} 
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="description">Service Description</Label>
-                    <Textarea 
-                      id="description" 
-                      name="description" 
-                      rows={3} 
-                      value={serviceForm.description} 
-                      onChange={handleServiceFormChange} 
-                      placeholder="Describe what's included in this service..."
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label className="mb-2 block">Service Availability</Label>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Switch 
-                          checked={serviceForm.availability.weekdays} 
-                          onCheckedChange={() => handleServiceAvailabilityToggle('weekdays')} 
-                        />
-                        <span>Available on weekdays</span>
+              {isServiceModalOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                  <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+                    <h3 className="text-lg font-medium text-homehelp-900 mb-4">{selectedService ? "Edit Service" : "Add New Service"}</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="service_id">Service Type</Label>
+                        <select 
+                          id="service_id"
+                          name="service_id"
+                          value={serviceForm.service_id}
+                          onChange={handleServiceFormChange}
+                          className="w-full rounded-md border border-input px-3 py-2"
+                          disabled={!!selectedService}
+                        >
+                          <option value="">-- Select Service Type --</option>
+                          <option value="1">House Cleaning</option>
+                          <option value="2">Plumbing</option>
+                          <option value="3">Electrical</option>
+                          <option value="4">Gardening</option>
+                        </select>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Switch 
-                          checked={serviceForm.availability.weekends} 
-                          onCheckedChange={() => handleServiceAvailabilityToggle('weekends')} 
+                      
+                      <div>
+                        <Label htmlFor="price">Price (KSh)</Label>
+                        <Input 
+                          id="price" 
+                          name="price" 
+                          type="number"
+                          value={serviceForm.price} 
+                          onChange={handleServiceFormChange} 
                         />
-                        <span>Available on weekends</span>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="description">Service Description</Label>
+                        <Textarea 
+                          id="description" 
+                          name="description" 
+                          rows={3} 
+                          value={serviceForm.description} 
+                          onChange={handleServiceFormChange} 
+                          placeholder="Describe what's included in this service..."
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label className="mb-2 block">Service Availability</Label>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Switch 
+                              checked={serviceForm.availability.weekdays} 
+                              onCheckedChange={() => handleServiceAvailabilityToggle('weekdays')} 
+                            />
+                            <span>Available on weekdays</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Switch 
+                              checked={serviceForm.availability.weekends} 
+                              onCheckedChange={() => handleServiceAvailabilityToggle('weekends')} 
+                            />
+                            <span>Available on weekends</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-end gap-2 pt-2">
+                        <Button variant="outline" onClick={closeServiceModal}>Cancel</Button>
+                        <Button onClick={handleServiceFormSubmit}>Save Service</Button>
                       </div>
                     </div>
                   </div>
-                  
-                  <div className="flex justify-end gap-2 pt-2">
-                    <Button variant="outline">Cancel</Button>
-                    <Button>Save Service</Button>
-                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </Card>
         </TabsContent>

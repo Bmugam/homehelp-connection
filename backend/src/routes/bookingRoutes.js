@@ -29,4 +29,9 @@ router.get('/provider/:providerId', authenticateToken, (req, res, next) => {
 // Get all bookings
 router.get('/all', authenticateToken, bookingController.getAllBookings);
 
+router.post('/bookings/:id/status', authenticateToken,(req, res, next) => {
+  console.log('Update appointment status route hit with client_id:', req.params.id);
+  next();
+}, bookingController.updateAppointmentStatus);
+
 module.exports = router;

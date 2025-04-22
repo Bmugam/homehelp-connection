@@ -30,7 +30,6 @@ const getAllProviders = async (db) => {
     provider.average_rating = Number(provider.average_rating || 0);
     provider.review_count = Number(provider.review_count || 0);
   }
-  console.log('Providers with services:', providers);
 
   return providers;
 };
@@ -38,7 +37,8 @@ const getAllProviders = async (db) => {
 const getProvidersByService = async (db, serviceId) => {
   const [providers] = await db.query(`
     SELECT 
-      u.id,
+      u.id as user_id,
+      p.id as provider_id,
       u.first_name,
       u.last_name,
       u.email,
@@ -68,9 +68,10 @@ const getProvidersByService = async (db, serviceId) => {
   }));
 };
 
-const getProviderById = async (db, providerId) => {
+// This function handles both user_id and provider_id
+const getProviderById = async (db, id) => {
   try {
-    // Get provider basic info
+    // First, try to get provider details regardless of ID type
     const [providers] = await db.query(`
       SELECT 
         u.id as user_id,
@@ -88,8 +89,8 @@ const getProviderById = async (db, providerId) => {
         p.verification_status
       FROM users u
       JOIN providers p ON u.id = p.user_id
-      WHERE p.id = ? AND u.user_type = 'provider'
-    `, [providerId]);
+      WHERE (u.id = ? OR p.id = ?) AND u.user_type = 'provider'
+    `, [id, id]);
 
     if (!providers.length) return null;
 
@@ -97,11 +98,11 @@ const getProviderById = async (db, providerId) => {
 
     // Get provider services
     const [services] = await db.query(`
-      SELECT s.name, ps.price, ps.description
+      SELECT s.id, s.name, ps.price, ps.description
       FROM provider_services ps
       JOIN services s ON ps.service_id = s.id
       WHERE ps.provider_id = ?
-    `, [providerId]);
+    `, [provider.provider_id]);
 
     // Get provider reviews
     const [reviews] = await db.query(`
@@ -116,12 +117,17 @@ const getProviderById = async (db, providerId) => {
       WHERE r.provider_id = ?
       ORDER BY r.created_at DESC
       LIMIT 5
-    `, [providerId]);
+    `, [provider.provider_id]);
 
     return {
       ...provider,
       name: `${provider.first_name} ${provider.last_name}`,
-      services: services.map(s => s.name),
+      services: services.map(s => ({
+        id: s.id,
+        name: s.name,
+        price: s.price,
+        description: s.description
+      })),
       reviews: reviews.map(r => ({
         ...r,
         reviewer_name: `${r.first_name} ${r.last_name}`,
@@ -134,8 +140,119 @@ const getProviderById = async (db, providerId) => {
   }
 };
 
+// Helper function to get provider_id from either user_id or provider_id
+const getProviderId = async (db, id) => {
+  // First check if it's already a provider_id
+  const [providerCheck] = await db.query(`
+    SELECT id FROM providers WHERE id = ?
+  `, [id]);
+  
+  if (providerCheck.length) {
+    return providerCheck[0].id;
+  }
+  
+  // Then check if it's a user_id
+  const [providerResult] = await db.query(`
+    SELECT id FROM providers WHERE user_id = ?
+  `, [id]);
+  
+  if (!providerResult.length) {
+    throw new Error('Provider not found');
+  }
+  
+  return providerResult[0].id;
+};
+
+const getProviderServices = async (db, id) => {
+  try {
+    const providerId = await getProviderId(db, id);
+    
+    const [services] = await db.query(`
+      SELECT ps.id, ps.service_id, s.name, ps.price, ps.description, ps.availability
+      FROM provider_services ps
+      JOIN services s ON ps.service_id = s.id
+      WHERE ps.provider_id = ?
+    `, [providerId]);
+    
+    return services;
+  } catch (error) {
+    console.error('Error fetching provider services:', error);
+    return [];
+  }
+};
+
+const addProviderService = async (db, id, serviceData) => {
+  const providerId = await getProviderId(db, id);
+  
+  const { service_id, price, description, availability } = serviceData;
+  const [result] = await db.query(`
+    INSERT INTO provider_services (provider_id, service_id, price, description, availability)
+    VALUES (?, ?, ?, ?, ?)
+  `, [providerId, service_id, price, description, JSON.stringify(availability)]);
+  
+  return { id: result.insertId, ...serviceData };
+};
+
+const updateProviderService = async (db, id, serviceId, serviceData) => {
+  const providerId = await getProviderId(db, id);
+  
+  const { price, description, availability } = serviceData;
+  await db.query(`
+    UPDATE provider_services
+    SET price = ?, description = ?, availability = ?
+    WHERE id = ? AND provider_id = ?
+  `, [price, description, JSON.stringify(availability), serviceId, providerId]);
+  
+  return { id: serviceId, provider_id: providerId, ...serviceData };
+};
+
+const deleteProviderService = async (db, id, serviceId) => {
+  const providerId = await getProviderId(db, id);
+  
+  await db.query(`
+    DELETE FROM provider_services
+    WHERE id = ? AND provider_id = ?
+  `, [serviceId, providerId]);
+};
+
+const updateProviderProfile = async (db, id, profileData) => {
+  const providerId = await getProviderId(db, id);
+  
+  const { business_name, business_description, location } = profileData;
+  await db.query(`
+    UPDATE providers
+    SET business_name = ?, business_description = ?, location = ?
+    WHERE id = ?
+  `, [business_name, business_description, location, providerId]);
+  
+  // Use the same id that was passed in for consistency
+  const updatedProvider = await getProviderById(db, id);
+  return updatedProvider;
+};
+
+const updateProviderAvailability = async (db, id, availabilityData) => {
+  const providerId = await getProviderId(db, id);
+  
+  const { availability_hours } = availabilityData;
+  await db.query(`
+    UPDATE provider_services
+    SET availability = ?
+    WHERE provider_id = ?
+  `, [JSON.stringify(availability_hours), providerId]);
+  
+  // Use the same id that was passed in for consistency
+  const updatedProvider = await getProviderById(db, id);
+  return updatedProvider;
+};
+
 module.exports = {
   getAllProviders,
   getProvidersByService,
-  getProviderById
+  getProviderById,
+  getProviderServices,
+  addProviderService,
+  updateProviderService,
+  deleteProviderService,
+  updateProviderProfile,
+  updateProviderAvailability
 };

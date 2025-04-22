@@ -220,11 +220,13 @@ const bookingController = {
           b.time_slot as time,
           b.location,
           b.status,
+          ps.price,
           c.user_id as client_user_id
         FROM bookings b
         JOIN clients c ON b.client_id = c.id
         JOIN users u ON c.user_id = u.id
         JOIN services s ON b.service_id = s.id
+        JOIN provider_services ps ON b.service_id = ps.service_id AND b.provider_id = ps.provider_id
         WHERE b.provider_id = ?
         ORDER BY b.date DESC, b.time_slot ASC
       `, [providerId]);

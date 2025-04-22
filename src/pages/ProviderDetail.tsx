@@ -5,8 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Star, Phone, Mail, Calendar, ArrowLeft, ThumbsUp, Clock, Award, CheckCircle, User, Briefcase } from "lucide-react";
 
-import { getProviderById } from "@/services/providerService";
-import type { Provider, Review } from "@/types/provider";
+import { getProviderById } from "../services/providerService";
+import type { Provider, Review } from "../types/provider";
+
+interface Service {
+  id: number;
+  name: string;
+  price?: number;
+  description?: string;
+}
 
 const ProviderDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -19,7 +26,24 @@ const ProviderDetail = () => {
       try {
         setLoading(true);
         const data = await getProviderById(id!);
-        setProvider(data);
+        // Transform data to match Provider type
+        const transformedProvider = {
+          id: data.provider_id.toString(),
+          name: data.name || `${data.first_name} ${data.last_name}`,
+          email: data.email,
+          phone: data.phone,
+          location: data.location,
+          bio: data.bio || data.business_name,
+          image: data.profile_image || '/default-profile.png',
+          rating: parseFloat(data.average_rating) || 0,
+          reviews: data.review_count || 0,
+          services: data.services || [],
+          verification_status: data.verification_status,
+          experience: data.experience || '',
+          verified: data.verification_status === 'verified',
+          // Add other fields as needed
+        };
+        setProvider(transformedProvider);
       } catch (err) {
         setError('Failed to fetch provider details');
         console.error('Error fetching provider:', err);
@@ -157,12 +181,12 @@ const ProviderDetail = () => {
                   Services Offered
                 </h3>
                 <div className="flex flex-wrap gap-2">
-                  {provider.services.map((service: string) => (
+                  {(provider.services as Service[]).map((service) => (
                     <Badge 
-                      key={service} 
+                      key={service.id} 
                       className="bg-homehelp-100 text-homehelp-800 hover:bg-homehelp-200 px-3 py-1"
                     >
-                      {service}
+                      {service.name}
                     </Badge>
                   ))}
                 </div>

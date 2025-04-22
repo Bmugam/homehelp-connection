@@ -6,7 +6,7 @@ import { Search, MapPin, Star, Phone, Calendar, Mail } from "lucide-react";
 import { BookingModal } from '../components/BookingModal';
 import { useState, useEffect } from "react";
 import { API_BASE_URL } from '../apiConfig';
-import type { Provider } from "@/types";
+import type { Provider } from "@/types/index";
 
 const Providers = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -274,10 +274,13 @@ const Providers = () => {
                   </div>
                 </div>
                 
-                <div className="p-4 border-t border-homehelp-100 bg-homehelp-50 flex justify-between items-center">
-                  <Link to={`/providers/${provider.id}`} className="text-sm text-homehelp-700 hover:text-homehelp-900">
+                <div className="p-4 border-t border-homehelp-100 bg-homehelp-950 flex justify-between items-center">
+                  <Button
+                    variant="info">
+                  <Link to={`/providers/${provider.id}`} className="text-sm text-homehelp-30 hover:text-homehelp-900">
                     View Profile
                   </Link>
+                  </Button>
                   <Button 
                     size="sm" 
                     className="flex items-center gap-1"

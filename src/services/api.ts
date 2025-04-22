@@ -157,12 +157,13 @@ export const apiService = {
     getAppointments: (userId: string | number) => 
       api.get<{ success: boolean; data: Appointment[] }>(`/api/bookings/provider/${userId}`),
     updateAppointmentStatus: (id: number, status: string, userId: string | number) => 
-      api.put(`/api/bookings/${id}/status`, { status, userId }),
+      api.post(`/api/bookings/${id}/status`, { status, userId }),
     createAppointment: (data: CreateAppointmentDTO) => 
       api.post('/api/bookings', data),
     deleteAppointment: (appointmentId: number, userId: string | number) => 
       api.request({ url: `/api/bookings/${appointmentId}`, method: 'DELETE', data: { userId } }),
   },
+
 
   // Bookings endpoints
   bookings: {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, ChangeEvent } from 'react';
+import React, { useState, ChangeEvent } from 'react';
 import { Button } from "@/components/ui/button";
 import { Plus, Search, Edit, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Service, ServiceCreateInput, ServiceWithDefaults, DEFAULT_SERVICE_VALUES } from "@/types/service";
 import { API_BASE_URL } from '../../../../apiConfig';
+import { toast } from "@/components/ui/use-toast";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const makeAuthenticatedRequest = async (url: string, options = {}) => {
   const token = localStorage.getItem('token');
@@ -27,10 +29,16 @@ const makeAuthenticatedRequest = async (url: string, options = {}) => {
   return response;
 };
 
+const debugLog = (action: string, data: any) => {
+  console.log(`[Services ${action}]`, {
+    timestamp: new Date().toISOString(),
+    ...data
+  });
+};
+
 const ServicesManagement = () => {
-  const [services, setServices] = useState<Service[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
   const [searchTerm, setSearchTerm] = useState('');
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [isAddServiceDialogOpen, setIsAddServiceDialogOpen] = useState(false);
@@ -46,33 +54,34 @@ const ServicesManagement = () => {
     duration: 30
   });
 
-  useEffect(() => {
-    fetchServices();
-  }, []);
-
-  const fetchServices = async () => {
-    try {
-      setIsLoading(true);
-      const response = await makeAuthenticatedRequest(`${API_BASE_URL}/api/admin/services`);
-      const data = await response.json();
-      // Apply default values to services
-      const servicesWithDefaults = (Array.isArray(data) ? data : []).map(service => ({
-        ...DEFAULT_SERVICE_VALUES,
-        ...service,
-        price: Number(service?.price || 0),
-        providers: Array.isArray(service?.providers) ? service.providers : []
-      }));
-      setServices(servicesWithDefaults);
-    } catch (error) {
-      console.error('Error fetching services:', error);
-      setError('Failed to fetch services');
-    } finally {
-      setIsLoading(false);
+  const {
+    data: services = [],
+    isLoading,
+    error
+  } = useQuery<Service[]>({
+    queryKey: ['services'],
+    queryFn: async () => {
+      debugLog('Fetch', { status: 'starting' });
+      try {
+        const response = await makeAuthenticatedRequest(`${API_BASE_URL}/api/admin/services`);
+        const data = await response.json();
+        debugLog('Fetch', { status: 'success', count: data.length });
+        return data.map(service => ({
+          ...DEFAULT_SERVICE_VALUES,
+          ...service,
+          price: Number(service?.price || 0),
+          providers: Array.isArray(service?.providers) ? service.providers : []
+        }));
+      } catch (error) {
+        debugLog('Fetch', { status: 'error', error });
+        throw error;
+      }
     }
-  };
+  });
 
-  const handleAddService = async () => {
-    try {
+  const createServiceMutation = useMutation({
+    mutationFn: async (newService: ServiceCreateInput) => {
+      debugLog('Create', { service: newService });
       const response = await makeAuthenticatedRequest(
         `${API_BASE_URL}/api/admin/services`,
         {
@@ -80,29 +89,29 @@ const ServicesManagement = () => {
           body: JSON.stringify(newService)
         }
       );
-
-      if (response.ok) {
-        await fetchServices();
-        setIsAddServiceDialogOpen(false);
-        setNewService({
-          name: '',
-          description: '',
-          category: '',
-          price: 0,
-          duration: 30
-        });
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message);
-      }
-    } catch (error) {
-      console.error('Error adding service:', error);
-      alert('Failed to add service');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['services'] });
+      setIsAddServiceDialogOpen(false);
+      toast({
+        title: "Success",
+        description: "Service created successfully",
+      });
+    },
+    onError: (error) => {
+      debugLog('Create', { status: 'error', error });
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to create service"
+      });
     }
-  };
+  });
 
-  const handleEditService = async (service: Service) => {
-    try {
+  const updateServiceMutation = useMutation({
+    mutationFn: async (service: Service) => {
+      debugLog('Update', { service });
       const response = await makeAuthenticatedRequest(
         `${API_BASE_URL}/api/admin/services/${service.id}`,
         {
@@ -110,48 +119,74 @@ const ServicesManagement = () => {
           body: JSON.stringify(service)
         }
       );
-
-      if (response.ok) {
-        await fetchServices();
-        setEditingService(null);
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message);
-      }
-    } catch (error) {
-      console.error('Error updating service:', error);
-      alert('Failed to update service');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['services']);
+      setEditingService(null);
+      toast({
+        title: "Success",
+        description: "Service updated successfully",
+      });
+    },
+    onError: (error) => {
+      debugLog('Update', { status: 'error', error });
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update service"
+      });
     }
-  };
+  });
 
-  const handleDeleteService = async (serviceId: string) => {
-    if (!window.confirm('Are you sure you want to delete this service?')) return;
-
-    try {
-      const response = await makeAuthenticatedRequest(
+  const deleteServiceMutation = useMutation({
+    mutationFn: async (serviceId: string) => {
+      debugLog('Delete', { serviceId });
+      await makeAuthenticatedRequest(
         `${API_BASE_URL}/api/admin/services/${serviceId}`,
         { method: 'DELETE' }
       );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['services']);
+      toast({
+        title: "Success",
+        description: "Service deleted successfully",
+      });
+    },
+    onError: (error) => {
+      debugLog('Delete', { status: 'error', error });
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete service"
+      });
+    }
+  });
 
-      if (response.ok) {
-        await fetchServices();
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message);
-      }
-    } catch (error) {
-      console.error('Error deleting service:', error);
-      alert('Failed to delete service');
+  const handleAddService = () => {
+    createServiceMutation.mutate(newService);
+  };
+
+  const handleEditService = (service: Service) => {
+    updateServiceMutation.mutate(service);
+  };
+
+  const handleDeleteService = (serviceId: string) => {
+    if (window.confirm('Are you sure you want to delete this service?')) {
+      deleteServiceMutation.mutate(serviceId);
     }
   };
 
   const handleBulkDelete = async () => {
-    if (!selectedServices.length) return;
-    
-    if (!window.confirm(`Are you sure you want to delete ${selectedServices.length} services?`)) return;
+    if (!selectedServices.length ||
+      !window.confirm(`Are you sure you want to delete ${selectedServices.length} services?`)) {
+      return;
+    }
 
+    debugLog('BulkDelete', { count: selectedServices.length });
     try {
-      const response = await makeAuthenticatedRequest(
+      await makeAuthenticatedRequest(
         `${API_BASE_URL}/api/admin/services/bulk-delete`,
         {
           method: 'DELETE',
@@ -159,16 +194,19 @@ const ServicesManagement = () => {
         }
       );
 
-      if (response.ok) {
-        await fetchServices();
-        setSelectedServices([]);
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message);
-      }
+      queryClient.invalidateQueries(['services']);
+      setSelectedServices([]);
+      toast({
+        title: "Success",
+        description: `${selectedServices.length} services deleted successfully`,
+      });
     } catch (error) {
-      console.error('Error deleting services:', error);
-      alert('Failed to delete services');
+      debugLog('BulkDelete', { status: 'error', error });
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete services"
+      });
     }
   };
 
@@ -176,12 +214,14 @@ const ServicesManagement = () => {
     const { name, value, type } = event.target;
     setNewService(prev => ({
       ...prev,
-      [name]: type === 'number' ? parseFloat(value) || 0 : value
+      [name]: type === 'number' 
+        ? value === '' ? 0 : parseFloat(value) || 0
+        : value || ''
     }));
   };
 
   const handleSelectService = (serviceId: string) => {
-    setSelectedServices(prev => 
+    setSelectedServices(prev =>
       prev.includes(serviceId)
         ? prev.filter(id => id !== serviceId)
         : [...prev, serviceId]
@@ -247,7 +287,7 @@ const ServicesManagement = () => {
                   <Input
                     id="name"
                     name="name"
-                    value={newService.name}
+                    value={newService.name || ''}
                     onChange={handleInputChange}
                     placeholder="Enter service name"
                   />
@@ -257,7 +297,7 @@ const ServicesManagement = () => {
                   <Input
                     id="description"
                     name="description"
-                    value={newService.description}
+                    value={newService.description || ''}
                     onChange={handleInputChange}
                     placeholder="Brief description of the service"
                   />
@@ -267,7 +307,7 @@ const ServicesManagement = () => {
                   <Input
                     id="category"
                     name="category"
-                    value={newService.category}
+                    value={newService.category || ''}
                     onChange={handleInputChange}
                     placeholder="e.g., Cleaning, Plumbing, etc."
                   />
@@ -281,7 +321,7 @@ const ServicesManagement = () => {
                       type="number"
                       min="0"
                       step="0.01"
-                      value={newService.price}
+                      value={newService.price?.toString() || '0'}
                       onChange={handleInputChange}
                     />
                   </div>
@@ -292,7 +332,7 @@ const ServicesManagement = () => {
                       name="duration"
                       type="number"
                       min="1"
-                      value={newService.duration}
+                      value={newService.duration?.toString() || '30'}
                       onChange={handleInputChange}
                     />
                   </div>
@@ -313,11 +353,11 @@ const ServicesManagement = () => {
             <Input
               className="pl-10"
               placeholder="Search services..."
-              value={searchTerm}
+              value={searchTerm || ''}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <Checkbox 
+          <Checkbox
             checked={selectedServices.length === filteredServices.length && filteredServices.length > 0}
             onCheckedChange={handleSelectAll}
           />
@@ -330,10 +370,10 @@ const ServicesManagement = () => {
       <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {filteredServices.map((service) => {
           const price = typeof service?.price === 'number' ? service.price : 0;
-          
+
           return (
-            <Card 
-              key={service.id} 
+            <Card
+              key={service.id}
               className={`hover:shadow-lg transition-shadow ${
                 selectedServices.includes(service.id) ? 'ring-2 ring-primary' : ''
               }`}
@@ -413,7 +453,7 @@ const ServicesManagement = () => {
                 const price = typeof provider?.price === 'number' ? provider.price : 0;
                 const rating = typeof provider?.average_rating === 'number' ? provider.average_rating : 0;
                 const reviews = typeof provider?.review_count === 'number' ? provider.review_count : 0;
-                
+
                 return (
                   <Card key={provider.provider_id} className="p-4">
                     <div className="space-y-2">

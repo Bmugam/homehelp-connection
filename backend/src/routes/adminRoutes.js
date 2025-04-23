@@ -32,8 +32,6 @@ router.delete('/services/:id', authenticateToken, isAdmin, adminController.delet
 
 // Bookings routes
 router.get('/bookings', authenticateToken, isAdmin, adminController.getAllBookings);
-router.post('/bookings', authenticateToken, isAdmin, adminController.createBooking);
-router.get('/bookings/:id', authenticateToken, isAdmin, adminController.getBookingById);
 router.put('/bookings/:id/status', authenticateToken, isAdmin, adminController.updateBookingStatus);
 router.delete('/bookings/:id', authenticateToken, isAdmin, adminController.deleteBooking);
 

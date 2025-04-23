@@ -568,6 +568,7 @@ module.exports = {
           p_user.first_name as provider_first_name,
           p_user.last_name as provider_last_name,
           p_user.email as provider_email,
+          p.verification_status as verification_status,
           s.name as service_name,
           ps.price as service_price,
           COALESCE(pm.amount, 0) as payment_amount,
@@ -604,7 +605,8 @@ module.exports = {
           business_name: booking.business_name,
           first_name: booking.provider_first_name,
           last_name: booking.provider_last_name,
-          email: booking.provider_email
+          email: booking.provider_email,
+          verification_status: booking.verification_status
         },
         service: {
           name: booking.service_name,

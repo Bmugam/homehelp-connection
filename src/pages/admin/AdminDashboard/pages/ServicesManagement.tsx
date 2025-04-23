@@ -459,8 +459,8 @@ const ServicesManagement = () => {
                     <div className="space-y-2">
                       <div className="flex justify-between items-start">
                         <div>
-                          <h3 className="font-medium">{provider?.business_name || 'Unnamed Business'}</h3>
-                          <p className="text-sm text-gray-500">{provider?.provider_name || 'Unknown Provider'}</p>
+                          <h3 className="font-medium">{provider?.provider_name || 'Unnamed Business'}</h3>
+                          <p className="text-sm text-gray-500">{provider?.business_name || 'Unknown Provider'}</p>
                         </div>
                         <span className={`px-2 py-1 rounded-full text-xs ${
                           provider?.verification_status === 'verified'

@@ -11,10 +11,11 @@ interface ProviderListModalProps {
   onClose: () => void;
   providers: Provider[];
   serviceName: string;
+  selectedServiceId?: number;
   onSelectProvider?: (provider: Provider) => void;
 }
 
-export function ProviderListModal({ isOpen, onClose, providers, serviceName, onSelectProvider }: ProviderListModalProps) {
+export function ProviderListModal({ isOpen, onClose, providers, serviceName, selectedServiceId, onSelectProvider }: ProviderListModalProps) {
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
 
@@ -77,6 +78,7 @@ export function ProviderListModal({ isOpen, onClose, providers, serviceName, onS
           isOpen={bookingModalOpen}
           onClose={closeBookingModal}
           provider={selectedProvider}
+          selectedServiceId={selectedServiceId}
         />
       )}
     </>

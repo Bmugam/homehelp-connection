@@ -165,24 +165,126 @@ module.exports = {
   getAllServices: async (req, res) => {
     try {
       const db = req.app.locals.db;
+      
+      // Fetch all services
       const [services] = await db.query(`
-        SELECT 
+        SELECT
           s.id,
           s.name,
           s.description,
           s.category,
-          s.image,
-          COUNT(ps.provider_id) as provider_count
+          s.image
         FROM services s
-        LEFT JOIN provider_services ps ON s.id = ps.service_id
-        GROUP BY s.id
         ORDER BY s.name ASC
       `);
-
-      res.json(services);
+      
+      // Fetch providers for each service
+      const serviceIds = services.map(service => service.id);
+      let providersByService = {};
+      
+      if (serviceIds.length > 0) {
+        const [providerRows] = await db.query(`
+          SELECT
+            ps.service_id,
+            p.id as provider_id,
+            p.business_name,
+            u.first_name,
+            u.last_name,
+            p.location,
+            ps.price,
+            ps.description,
+            ps.availability,
+            p.verification_status,
+            p.average_rating,
+            p.review_count
+          FROM provider_services ps
+          JOIN providers p ON ps.provider_id = p.id
+          JOIN users u ON p.user_id = u.id
+          WHERE ps.service_id IN (?)
+        `, [serviceIds]);
+        
+        providersByService = providerRows.reduce((acc, row) => {
+          if (!acc[row.service_id]) {
+            acc[row.service_id] = [];
+          }
+          acc[row.service_id].push({
+            provider_id: row.provider_id,
+            business_name: row.business_name,
+            provider_name: `${row.first_name} ${row.last_name}`, // Combining first and last name
+            location: row.location,
+            price: row.price,
+            description: row.description,
+            availability: typeof row.availability === 'string' ? JSON.parse(row.availability) : row.availability,
+            verification_status: row.verification_status,
+            average_rating: row.average_rating,
+            review_count: row.review_count
+          });
+          return acc;
+        }, {});
+      }
+      
+      // Attach providers to services
+      const servicesWithProviders = services.map(service => ({
+        ...service,
+        providers: providersByService[service.id] || []
+      }));
+      
+      res.json(servicesWithProviders);
     } catch (error) {
       console.error('Error fetching services:', error);
       res.status(500).json({ message: 'Error fetching services' });
+    }
+  },
+
+  editService: async (req, res) => {
+    try {
+      const db = req.app.locals.db;
+      const serviceId = parseInt(req.params.id);
+      
+      // Validate serviceId
+      if (!serviceId || isNaN(serviceId)) {
+        return res.status(400).json({ message: 'Invalid service ID' });
+      }
+      
+      const { name, description, category, image } = req.body;
+      
+      // Validate required fields
+      if (!name || !category) {
+        return res.status(400).json({ message: 'Name and category are required' });
+      }
+      
+      // Check if service exists
+      const [existingService] = await db.query('SELECT id FROM services WHERE id = ?', [serviceId]);
+      if (existingService.length === 0) {
+        return res.status(404).json({ message: 'Service not found' });
+      }
+      
+      // Update service
+      await db.query(`
+        UPDATE services
+        SET name = ?,
+            description = ?,
+            category = ?,
+            image = ?,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `, [name, description, category, image, serviceId]);
+      
+      // Fetch the updated service
+      const [updatedService] = await db.query(`
+        SELECT id, name, description, category, image, created_at, updated_at
+        FROM services
+        WHERE id = ?
+      `, [serviceId]);
+      
+      res.json({
+        message: 'Service updated successfully',
+        service: updatedService[0]
+      });
+      
+    } catch (error) {
+      console.error('Error updating service:', error);
+      res.status(500).json({ message: 'Error updating service' });
     }
   },
 

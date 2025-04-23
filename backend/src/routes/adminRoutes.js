@@ -27,10 +27,15 @@ router.delete('/providers/:id', authenticateToken, isAdmin, adminController.dele
 // Services routes
 router.get('/services', authenticateToken, isAdmin, adminController.getAllServices);
 router.post('/services', authenticateToken, isAdmin, adminController.createService);
+router.put('/services/:id', authenticateToken, isAdmin, adminController.editService);
+router.delete('/services/:id', authenticateToken, isAdmin, adminController.deleteService);
 
 // Bookings routes
 router.get('/bookings', authenticateToken, isAdmin, adminController.getAllBookings);
+router.post('/bookings', authenticateToken, isAdmin, adminController.createBooking);
+router.get('/bookings/:id', authenticateToken, isAdmin, adminController.getBookingById);
 router.put('/bookings/:id/status', authenticateToken, isAdmin, adminController.updateBookingStatus);
+router.delete('/bookings/:id', authenticateToken, isAdmin, adminController.deleteBooking);
 
 // Activity routes
 router.get('/activities', authenticateToken, isAdmin, adminController.getRecentActivities);

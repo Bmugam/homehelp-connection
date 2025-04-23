@@ -122,7 +122,7 @@ const ServicesManagement = () => {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['services']);
+      queryClient.invalidateQueries({ queryKey: ['services'] });
       setEditingService(null);
       toast({
         title: "Success",
@@ -148,7 +148,7 @@ const ServicesManagement = () => {
       );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['services']);
+      queryClient.invalidateQueries({ queryKey: ['services'] });
       toast({
         title: "Success",
         description: "Service deleted successfully",

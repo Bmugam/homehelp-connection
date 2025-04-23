@@ -7,8 +7,10 @@ import { MapPin, Star, Phone, Mail, Calendar, ArrowLeft, ThumbsUp, Clock, Award,
 
 import { getProviderById } from "../services/providerService";
 import type { Provider, Review } from "../types/provider";
+import { ProviderListModal } from "../components/ProviderListModal";
+import type { Service } from "../pages/Services";
 
-interface Service {
+interface ProviderDetailService extends Service {
   id: number;
   name: string;
   price?: number;
@@ -20,6 +22,10 @@ const ProviderDetail = () => {
   const [provider, setProvider] = useState<Provider | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Booking modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedService, setSelectedService] = useState<ProviderDetailService | null>(null);
 
   useEffect(() => {
     const fetchProvider = async () => {
@@ -57,6 +63,11 @@ const ProviderDetail = () => {
     }
   }, [id]);
 
+  const openBookingModal = (service: ProviderDetailService) => {
+    setSelectedService(service);
+    setIsModalOpen(true);
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-12 text-center">
@@ -75,7 +86,7 @@ const ProviderDetail = () => {
           <h2 className="text-2xl font-semibold text-homehelp-900 mb-4">Error</h2>
           <p className="text-homehelp-600 mb-6">{error}</p>
           <Link to="/providers">
-            <Button className="bg-homehelp-900 hover:bg-homehelp-800">
+            <Button className="bg-homeh-900 hover:bg-homehelp-800">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Providers
             </Button>
@@ -156,7 +167,14 @@ const ProviderDetail = () => {
                   </div>
                 </div>
                 
-                <Button className="w-full mt-6 bg-homehelp-900 hover:bg-homehelp-800">
+                <Button 
+                  className="w-full mt-6 bg-homehelp-900 hover:bg-homehelp-800"
+                  onClick={() => {
+                    if (provider.services && provider.services.length > 0) {
+                      openBookingModal(provider.services[0]);
+                    }
+                  }}
+                >
                   <Calendar className="w-4 h-4 mr-2" />
                   Book Appointment
                 </Button>
@@ -181,10 +199,11 @@ const ProviderDetail = () => {
                   Services Offered
                 </h3>
                 <div className="flex flex-wrap gap-2">
-                  {(provider.services as Service[]).map((service) => (
+                  {(provider.services as ProviderDetailService[]).map((service) => (
                     <Badge 
                       key={service.id} 
-                      className="bg-homehelp-100 text-homehelp-800 hover:bg-homehelp-200 px-3 py-1"
+                      className="bg-homehelp-100 text-homehelp-800 hover:bg-homehelp-200 px-3 py-1 cursor-pointer"
+                      onClick={() => openBookingModal(service)}
                     >
                       {service.name}
                     </Badge>
@@ -193,6 +212,7 @@ const ProviderDetail = () => {
               </div>
             </CardContent>
           </Card>
+          
           
           <Card>
             <CardContent className="p-6">
@@ -316,8 +336,17 @@ const ProviderDetail = () => {
               </Button>
             </CardContent>
           </Card>
+          
         </div>
       </div>
+
+      <ProviderListModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        providers={provider ? [provider] : []}
+        serviceName={selectedService?.name || ''}
+        selectedServiceId={selectedService ? Number(selectedService.id) : undefined}
+      />
     </div>
   );
 };

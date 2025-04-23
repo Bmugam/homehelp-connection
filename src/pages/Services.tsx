@@ -29,19 +29,7 @@ interface Service {
   updated_at: string;
 }
 
-interface Provider {
-  id: string;
-  first_name: string;
-  last_name: string;
-  profile_image: string;
-  location: string;
-  business_name: string;
-  business_description: string;
-  average_rating: number;
-  review_count: number;
-  price: number;
-  service_description?: string;
-}
+import type { Provider } from "../types/index";
 
 const Services = () => {
   const navigate = useNavigate();
@@ -141,7 +129,34 @@ const Services = () => {
 
       setSelectedService(service);
       const response = await apiService.providers.getByService(serviceId);
-      setServiceProviders(response.data as Provider[]);
+      const providers = response.data as Provider[];
+      console.log('Providers fetched by service:', providers);
+
+      // Fetch full provider details including services for each provider
+      const detailedProviders = await Promise.all(
+        providers.map(async (provider: { id?: number; provider_id?: number | string }) => {
+          const providerId = provider.id || provider.provider_id;
+          if (!providerId) {
+            console.error('Provider id missing for provider:', provider);
+            return null;
+          }
+          const detailResponse = await apiService.providers.getById(providerId.toString());
+          const detailedProvider = detailResponse.data as Provider;
+          // Map provider_id to id for BookingModal compatibility
+          // Ensure services array includes the selected service for BookingModal
+          const services = detailedProvider.services && detailedProvider.services.length > 0
+            ? detailedProvider.services
+            : selectedService
+              ? [selectedService]
+              : [];
+          // Also ensure provider has id field set correctly
+          return { ...detailedProvider, id: Number(detailedProvider.id), services };
+        })
+      );
+
+      console.log('Detailed providers fetched:', detailedProviders);
+
+      setServiceProviders(detailedProviders.filter(p => p !== null) as Provider[]);
       setIsModalOpen(true);
     } catch (error) {
       console.error('Error fetching providers:', error);
@@ -154,11 +169,22 @@ const Services = () => {
   };
 
   if (loading) {
-    return (
-      <div className="container mx-auto px-4 py-12 bg-slate-50 text-center">
-        <p>Loading services...</p>
-      </div>
-    );
+    // Skeleton loader for service cards
+    const skeletonCards = Array(6).fill(0).map((_, index) => {
+      return (
+        <div key={index} className="border rounded-lg shadow-sm animate-pulse bg-white" aria-busy="true" aria-label="Loading service card" role="status">
+          <div className="aspect-video bg-gray-300 rounded-t-lg"></div>
+          <div className="p-4">
+            <div className="h-6 bg-gray-300 rounded w-3/4 mb-3"></div>
+            <div className="h-4 bg-gray-300 rounded w-full mb-2"></div>
+            <div className="h-4 bg-gray-300 rounded w-full mb-2"></div>
+            <div className="h-5 bg-gray-300 rounded w-1/4 mt-4"></div>
+          </div>
+        </div>
+      );
+    });
+    
+    return <>{skeletonCards}</>;
   }
 
   if (error) {
@@ -296,11 +322,13 @@ const Services = () => {
           )}
         </div>
       </div>
+      {console.log('Providers passed to ProviderListModal:', serviceProviders)}
       <ProviderListModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         providers={serviceProviders}
         serviceName={selectedService?.name || ''}
+        selectedServiceId={selectedService ? Number(selectedService.id) : undefined}
       />
     </div>
   );

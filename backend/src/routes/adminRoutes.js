@@ -4,58 +4,35 @@ const router = express.Router();
 const adminController = require('../controllers/adminController');
 const { authenticateToken, isAdmin } = require('../middleware/auth');
 
-// Error handling middleware
-const asyncHandler = fn => (req, res, next) => {
-  Promise.resolve(fn(req, res, next)).catch(next);
-};
-
-// Apply middleware to all admin routes
-router.use(authenticateToken);
-router.use(isAdmin);
-
 // Dashboard routes
-router.get('/dashboard/stats', asyncHandler(adminController.getDashboardStats));
-router.get('/recent-users', asyncHandler(adminController.getRecentUsers));
+router.get('/dashboard/stats', authenticateToken, isAdmin, adminController.getDashboardStats);
 
-// Users management
-router.get('/users', asyncHandler(adminController.getAllUsers));
-router.get('/users/:id', asyncHandler(adminController.getUserById));
-router.post('/users', asyncHandler(adminController.createUser));
-router.put('/users/:id', asyncHandler(adminController.updateUser));
-router.delete('/users/:id', asyncHandler(adminController.deleteUser));
+// Dashboard overview routes
+router.get('/recent-users', authenticateToken, isAdmin, adminController.getRecentUsers);
 
-// Providers CRUD Routes
-router.get('/providers', asyncHandler(adminController.getAllProviders));
-router.get('/providers/:id', asyncHandler(adminController.getProviderById));
-router.post('/providers', asyncHandler(adminController.createProvider));
-router.put('/providers/:id', asyncHandler(adminController.updateProvider));
-router.delete('/providers/:id', asyncHandler(adminController.deleteProvider));
+// User management routes
+router.get('/users/detailed', authenticateToken, isAdmin, adminController.getDetailedUsers);
+router.get('/users', authenticateToken, isAdmin, adminController.getAllUsers);
+router.post('/users', authenticateToken, isAdmin, adminController.createDetailedUser);
+router.put('/users/:id', authenticateToken, isAdmin, adminController.updateDetailedUser);
+router.delete('/users/:id', authenticateToken, isAdmin, adminController.deleteUser);
 
-// Services CRUD Routes
-router.get('/services', asyncHandler(adminController.getAllServices));
-router.get('/services/:id', asyncHandler(adminController.getServiceById));
-router.post('/services', asyncHandler(adminController.createService));
-router.put('/services/:id', asyncHandler(adminController.updateService));
-router.delete('/services/bulk-delete', asyncHandler(adminController.bulkDeleteServices));
-router.delete('/services/:id', asyncHandler(adminController.deleteService));
+// Provider management routes
+router.get('/providers', authenticateToken, isAdmin, adminController.getAllProviders);
+router.put('/providers/:id', authenticateToken, isAdmin, adminController.updateProvider);
+router.put('/providers/:id/verify', authenticateToken, isAdmin, adminController.verifyProvider);
+router.put('/providers/:id/status', authenticateToken, isAdmin, adminController.updateProviderStatus);
+router.delete('/providers/:id', authenticateToken, isAdmin, adminController.deleteProvider);
 
-// Bookings CRUD Routes
-router.get('/bookings', asyncHandler(adminController.getAllBookings));
-router.get('/bookings/:id', asyncHandler(adminController.getBookingById));
-router.post('/bookings', asyncHandler(adminController.createBooking));
-router.put('/bookings/:id', asyncHandler(adminController.updateBooking));
-router.delete('/bookings/:id', asyncHandler(adminController.deleteBooking));
+// Services routes
+router.get('/services', authenticateToken, isAdmin, adminController.getAllServices);
+router.post('/services', authenticateToken, isAdmin, adminController.createService);
 
-// Additional Admin Routes
-router.get('/activities', asyncHandler(adminController.getAdminActivities));
+// Bookings routes
+router.get('/bookings', authenticateToken, isAdmin, adminController.getAllBookings);
+router.put('/bookings/:id/status', authenticateToken, isAdmin, adminController.updateBookingStatus);
 
-// Add error logging
-router.use((err, req, res, next) => {
-  console.error('Admin route error:', err);
-  res.status(500).json({ 
-    message: 'An error occurred',
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined
-  });
-});
+// Activity routes
+router.get('/activities', authenticateToken, isAdmin, adminController.getRecentActivities);
 
 module.exports = router;

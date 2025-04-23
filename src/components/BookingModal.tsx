@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
+import useAuth from '@/contexts/AuthContext';
 import { Textarea } from '@/components/ui/textarea';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService } from '@/services/api';
@@ -27,6 +28,8 @@ export const BookingModal = ({ isOpen, onClose, provider, selectedServiceId }: B
 
   const queryClient = useQueryClient();
 
+  const { isAuthenticated } = useAuth();
+
   useEffect(() => {
     if (selectedServiceId !== undefined) {
       setSelectedService(selectedServiceId);
@@ -48,6 +51,11 @@ export const BookingModal = ({ isOpen, onClose, provider, selectedServiceId }: B
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!isAuthenticated) {
+      toast.error('Please login or signup to book a service');
+      return;
+    }
 
     if (!provider || !provider.id) {
       toast.error('Provider information is missing');

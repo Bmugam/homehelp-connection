@@ -169,11 +169,22 @@ const Services = () => {
   };
 
   if (loading) {
-    return (
-      <div className="container mx-auto px-4 py-12 bg-slate-50 text-center">
-        <p>Loading services...</p>
-      </div>
-    );
+    // Skeleton loader for service cards
+    const skeletonCards = Array(6).fill(0).map((_, index) => {
+      return (
+        <div key={index} className="border rounded-lg shadow-sm animate-pulse bg-white" aria-busy="true" aria-label="Loading service card" role="status">
+          <div className="aspect-video bg-gray-300 rounded-t-lg"></div>
+          <div className="p-4">
+            <div className="h-6 bg-gray-300 rounded w-3/4 mb-3"></div>
+            <div className="h-4 bg-gray-300 rounded w-full mb-2"></div>
+            <div className="h-4 bg-gray-300 rounded w-full mb-2"></div>
+            <div className="h-5 bg-gray-300 rounded w-1/4 mt-4"></div>
+          </div>
+        </div>
+      );
+    });
+    
+    return <>{skeletonCards}</>;
   }
 
   if (error) {

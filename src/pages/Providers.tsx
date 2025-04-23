@@ -134,9 +134,80 @@ const Providers = () => {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-12 text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-homehelp-900 mx-auto"></div>
-        <p className="mt-4 text-homehelp-600">Loading providers...</p>
+      <div className="container mx-auto px-4 py-12">
+        <h1 className="text-3xl md:text-4xl font-display font-bold text-homehelp-900 text-center mb-8">
+          Our Service Providers
+        </h1>
+        
+        <div className="relative max-w-2xl mx-auto mb-12">
+          <div className="w-full h-14 rounded-full bg-homehelp-100 animate-pulse"></div>
+        </div>
+        
+        <div className="mb-8">
+          <div className="flex flex-wrap gap-8 mb-6">
+            <div className="w-full md:w-auto">
+              <div className="h-5 w-32 bg-homehelp-100 rounded mb-2 animate-pulse"></div>
+              <div className="flex flex-wrap gap-2">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="h-8 w-20 bg-homehelp-100 rounded-full animate-pulse"></div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="w-full md:w-auto">
+              <div className="h-5 w-32 bg-homehelp-100 rounded mb-2 animate-pulse"></div>
+              <div className="flex flex-wrap gap-2">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="h-8 w-20 bg-homehelp-100 rounded-full animate-pulse"></div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => (
+            <Card key={i} className="overflow-hidden">
+              <CardContent className="p-0">
+                <div className="p-6">
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="w-16 h-16 rounded-full bg-homehelp-100 animate-pulse"></div>
+                    <div className="flex-1 space-y-2">
+                      <div className="h-5 w-3/4 bg-homehelp-100 rounded animate-pulse"></div>
+                      <div className="h-4 w-1/2 bg-homehelp-100 rounded animate-pulse"></div>
+                      <div className="h-4 w-2/3 bg-homehelp-100 rounded animate-pulse"></div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2 mb-4">
+                    <div className="h-3 w-full bg-homehelp-100 rounded animate-pulse"></div>
+                    <div className="h-3 w-5/6 bg-homehelp-100 rounded animate-pulse"></div>
+                    <div className="h-3 w-4/6 bg-homehelp-100 rounded animate-pulse"></div>
+                  </div>
+                  
+                  <div className="mb-4">
+                    <div className="h-4 w-20 bg-homehelp-100 rounded mb-2 animate-pulse"></div>
+                    <div className="flex flex-wrap gap-2">
+                      {[...Array(3)].map((_, i) => (
+                        <div key={i} className="h-6 w-16 bg-homehelp-100 rounded-full animate-pulse"></div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2 mb-4">
+                    <div className="h-4 w-3/4 bg-homehelp-100 rounded animate-pulse"></div>
+                    <div className="h-4 w-2/3 bg-homehelp-100 rounded animate-pulse"></div>
+                  </div>
+                </div>
+                
+                <div className="p-4 border-t border-homehelp-100 bg-homehelp-50 flex justify-between">
+                  <div className="h-9 w-24 bg-homehelp-100 rounded-md animate-pulse"></div>
+                  <div className="h-9 w-24 bg-homehelp-100 rounded-md animate-pulse"></div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }

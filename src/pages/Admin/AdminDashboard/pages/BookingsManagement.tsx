@@ -366,10 +366,10 @@ const BookingsManagement = () => {
                 </td>
                 <td className="px-6 py-4">
                   <div className="text-sm font-medium text-gray-900">
-                    {booking.provider.business_name}
+                    {`${booking.provider.first_name} ${booking.provider.last_name}`}
                   </div>
                   <div className="text-xs text-gray-500">
-                    {`${booking.provider.first_name} ${booking.provider.last_name}`}
+                  {booking.provider.business_name}
                   </div>
                   <div className="flex flex-col gap-2 mt-2">
                     {verificationBadge(booking.provider.verification_status)}

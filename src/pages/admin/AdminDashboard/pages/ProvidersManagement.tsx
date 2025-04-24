@@ -135,6 +135,7 @@ const ProvidersManagement = () => {
         throw new Error('Failed to fetch providers');
       }
       const data = await response.json();
+      console.log(data);
       setProviders(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching providers:', error);

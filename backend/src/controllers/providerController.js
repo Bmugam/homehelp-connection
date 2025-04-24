@@ -174,12 +174,51 @@ const getProviderServices = async (db, id) => {
       WHERE ps.provider_id = ?
     `, [providerId]);
     
-    return services;
+    // Cast price to number and parse availability for each service
+    const servicesWithParsedAvailability = services.map(service => {
+      let availability = { days: [], timeSlots: [] };
+      try {
+        availability = service.availability ? JSON.parse(service.availability) : availability;
+      } catch (e) {
+        console.error('Error parsing availability JSON:', e);
+      }
+      return {
+        ...service,
+        price: Number(service.price),
+        availability: {
+          days: Array.isArray(availability.days) ? availability.days : [],
+          timeSlots: Array.isArray(availability.timeSlots) ? availability.timeSlots : []
+        }
+      };
+    });
+    
+    return servicesWithParsedAvailability;
   } catch (error) {
     console.error('Error fetching provider services:', error);
     return [];
   }
 };
+
+const getProviderServiceCategories = async (db, id) => {
+  try {
+    const providerId = await getProviderId(db, id);
+    
+    const [categories] = await db.query(`
+      SELECT DISTINCT c.id, c.name
+      FROM provider_services ps
+      JOIN services s ON ps.service_id = s.id 
+      JOIN categories c ON s.category_id = c.id
+      WHERE ps.provider_id = ?
+    `, [providerId]);
+    
+    return categories;
+  } catch (error) {
+    console.error('Error fetching provider service categories:', error);
+    return [];
+  }
+};
+
+
 
 const addProviderService = async (db, id, serviceData) => {
   const providerId = await getProviderId(db, id);

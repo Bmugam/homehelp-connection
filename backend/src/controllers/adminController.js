@@ -53,6 +53,21 @@ module.exports = {
     }
   },
 
+  getServiceCategories: async (req, res) => {
+    try {
+      const db = req.app.locals.db;
+      const [categories] = await db.query(`
+        SELECT DISTINCT category AS name
+        FROM services
+        ORDER BY category ASC
+      `);
+      res.json(categories);
+    } catch (error) {
+      console.error('Error fetching service categories:', error);
+      res.status(500).json({ message: 'Error fetching service categories' });
+    }
+  },
+
   getAllUsers: async (req, res) => {
     try {
       const db = req.app.locals.db;
@@ -154,7 +169,8 @@ module.exports = {
         WHERE u.user_type = 'provider'
         ORDER BY u.created_at DESC
       `);
-
+      
+      console.log('Fethced Providers:',providers);
       res.json(providers);
     } catch (error) {
       console.error('Error fetching providers:', error);

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { apiService } from "@/services/api";
 import { ProviderListModal } from "@/components/ProviderListModal";
 
+// Update the Service interface to better match the API response
 interface Service {
   id: string;
   name: string;
@@ -18,7 +19,7 @@ interface Service {
     business_name: string;
     provider_name: string;
     location: string;
-    price: number;
+    price: string | number; // Update type to handle both string and number
     description: string;
     availability: string;
     verification_status: string;
@@ -295,12 +296,30 @@ const Services = () => {
 {Array.isArray(service.providers) && service.providers.length > 0 && (
   <>
     <span className="font-medium">
-      ${service.providers[0].price.toFixed(2)}
+      ${(() => {
+        const price = service.providers[0].price;
+        try {
+          return typeof price === 'number' 
+            ? price.toFixed(2)
+            : parseFloat(String(price || 0)).toFixed(2);
+        } catch {
+          return '0.00';
+        }
+      })()}
     </span>
     <div className="flex items-center space-x-1">
       <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
       <span className="text-sm">
-        {service.providers[0].average_rating} ({service.providers[0].review_count})
+        {(() => {
+          const rating = service.providers[0].average_rating;
+          try {
+            return typeof rating === 'number' 
+              ? rating.toFixed(1) 
+              : parseFloat(String(rating || 0)).toFixed(1);
+          } catch {
+            return '0.0';
+          }
+        })()} ({service.providers[0].review_count || 0})
       </span>
     </div>
   </>

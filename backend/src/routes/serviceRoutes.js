@@ -1,18 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
+const serviceController = require('../controllers/serviceController');
+const adminController = require('../controllers/adminController');
 
 // Public routes
-router.get('/', async (req, res) => {
-  try {
-    const db = req.app.locals.db;
-    const [services] = await db.query('SELECT * FROM services');
-    res.json(services);
-  } catch (error) {
-    console.error('Error fetching services:', error);
-    res.status(500).json({ message: 'Error fetching services' });
-  }
-});
+router.get('/', adminController.getAllServices);
+
+router.get('/service-categories', serviceController.getServiceCategories);
 
 router.get('/:id', async (req, res) => {
   try {

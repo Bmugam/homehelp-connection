@@ -1,5 +1,7 @@
 const express = require('express');
 const router = express.Router();
+const upload = require('../config/multerConfig');
+const { processUploadedImage } = require('../middleware/imageHandler');
 const {
   getAllProviders,
   getProvidersByService,
@@ -9,7 +11,8 @@ const {
   updateProviderService,
   deleteProviderService,
   updateProviderProfile,
-  updateProviderAvailability
+  updateProviderAvailability,
+  updateProviderProfileImage
 } = require('../controllers/providerController');
 
 // Existing routes
@@ -109,7 +112,18 @@ router.put('/:id/availability', async (req, res) => {
   }
 });
 
-
-
+// Route to upload provider profile image
+router.put('/:id/upload-image', upload.single('image'), processUploadedImage, async (req, res) => {
+  try {
+    if (!req.uploadedImagePath) {
+      return res.status(400).json({ message: 'No image uploaded' });
+    }
+    const updatedProvider = await updateProviderProfileImage(req.app.locals.db, req.params.id, req.uploadedImagePath);
+    res.json(updatedProvider);
+  } catch (error) {
+    console.error('Error uploading provider image:', error);
+    res.status(500).json({ message: 'Error uploading provider image' });
+  }
+});
 
 module.exports = router;

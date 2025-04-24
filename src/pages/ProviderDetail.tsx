@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { MapPin, Star, Phone, Mail, Calendar, ArrowLeft, ThumbsUp, Clock, Award, CheckCircle, User, Briefcase } from "lucide-react";
 
 import { getProviderById } from "../services/providerService";
+import { getImageUrl } from "../utils/imageUtils";
 import type { Provider, Review } from "../types/provider";
 import { ProviderListModal } from "../components/ProviderListModal";
 import type { Service } from "../pages/Services";
@@ -127,7 +128,7 @@ const ProviderDetail = () => {
             <CardContent className="p-6">
               <div className="flex flex-col items-center">
                 <img 
-                  src={provider.image || '/default-profile.png'} 
+                  src={getImageUrl(provider.image)} 
                   alt={provider.name}
                   className="w-32 h-32 rounded-full object-cover border-4 border-homehelp-100"
                   onError={(e) => {

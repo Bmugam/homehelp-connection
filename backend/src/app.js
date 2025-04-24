@@ -39,8 +39,8 @@ app.use((req, res, next) => {
   console.log('--------------------');
   console.log('Incoming request:');
   console.log('URL:', req.url);
-  console.log('Method:', req.method);
-  console.log('Headers:', req.headers);
+  // console.log('Method:', req.method);
+  // console.log('Headers:', req.headers);
   console.log('Body:', req.body);
   console.log('--------------------');
   next();
@@ -50,6 +50,9 @@ app.use(morgan('dev'));
 
 // Serve static files from 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Serve uploaded images statically
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // Database initialization
 async function initializeApp() {

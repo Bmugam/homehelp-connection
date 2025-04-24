@@ -246,7 +246,7 @@ export const apiService = {
       api.post('/api/bookings', data),
     deleteAppointment: (appointmentId: number, userId: string | number) => 
       api.request({ url: `/api/bookings/${appointmentId}`, method: 'DELETE', data: { userId } }),
-
+  
     // Provider services endpoints updated with new interfaces
     getServices: (providerId: string | number) => 
       api.get<Service[]>(`/api/providers/${providerId}/services`),
@@ -262,6 +262,14 @@ export const apiService = {
     
     toggleServiceStatus: (providerId: string | number, serviceId: string | number, active: boolean) => 
       api.patch<Service>(`/api/providers/${providerId}/services/${serviceId}/status`, { active }),
+
+    // Upload provider profile image
+    uploadProfileImage: (providerId: string | number, formData: FormData) =>
+      api.put(`/api/providers/${providerId}/upload-image`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      }),
   },
 
   // Bookings endpoints

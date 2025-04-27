@@ -338,6 +338,33 @@ const BookingsManagement = () => {
     setSortConfig({ key, direction });
   };
 
+  const generatePageNumbers = (currentPage: number, totalPages: number) => {
+    const delta = 2;
+    const range = [];
+    const rangeWithDots = [];
+    let l;
+
+    for (let i = 1; i <= totalPages; i++) {
+      if (i === 1 || i === totalPages || (i >= currentPage - delta && i <= currentPage + delta)) {
+        range.push(i);
+      }
+    }
+
+    for (const i of range) {
+      if (l) {
+        if (i - l === 2) {
+          rangeWithDots.push(l + 1);
+        } else if (i - l !== 1) {
+          rangeWithDots.push('...');
+        }
+      }
+      rangeWithDots.push(i);
+      l = i;
+    }
+
+    return rangeWithDots;
+  };
+
   return (
     <div className="container mx-auto p-4">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8">
@@ -568,23 +595,64 @@ const BookingsManagement = () => {
 
       {/* Pagination controls */}
       {sortedBookings.length > 0 && (
-        <div className="sticky bottom-4 mt-6 flex justify-between items-center bg-gray-200">
+        <div className="mt-6 flex items-center justify-center gap-1 bg-white px-4 py-3 rounded-lg shadow-sm border">
           <button
+            onClick={() => setCurrentPage(1)}
             disabled={currentPage === 1}
-            onClick={() => setCurrentPage(currentPage - 1)}
-            className="flex items-center px-4 py-2 bg-white text-gray-700 rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="relative inline-flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <ChevronLeft className="h-4 w-4 mr-1" /> Previous
+            <span className="sr-only">First</span>
+            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-4 w-4 -ml-2" />
           </button>
-          <div className="text-sm text-gray-600">
-            Page {currentPage} of {totalPages}
-          </div>
           <button
-            disabled={currentPage === totalPages || totalPages === 0}
-            onClick={() => setCurrentPage(currentPage + 1)}
-            className="flex items-center px-4 py-2 bg-white text-gray-700 rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            onClick={() => setCurrentPage(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="relative inline-flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Next <ChevronRight className="h-4 w-4 ml-1" />
+            <span className="sr-only">Previous</span>
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <nav className="relative z-0 inline-flex gap-1 rounded-md" aria-label="Pagination">
+            {generatePageNumbers(currentPage, totalPages).map((pageNum, index) => (
+              pageNum === '...' ? (
+                <span
+                  key={`dots-${index}`}
+                  className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700"
+                >
+                  ...
+                </span>
+              ) : (
+                <button
+                  key={pageNum}
+                  onClick={() => setCurrentPage(Number(pageNum))}
+                  className={`relative inline-flex items-center px-4 py-2 text-sm font-medium rounded-md ${
+                    currentPage === pageNum
+                      ? 'z-10 bg-blue-600 text-white'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              )
+            ))}
+          </nav>
+          <button
+            onClick={() => setCurrentPage(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="relative inline-flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span className="sr-only">Next</span>
+            <ChevronRight className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setCurrentPage(totalPages)}
+            disabled={currentPage === totalPages}
+            className="relative inline-flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span className="sr-only">Last</span>
+            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-4 w-4 -ml-2" />
           </button>
         </div>
       )}

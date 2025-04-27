@@ -60,9 +60,13 @@ router.get('/:id/services', async (req, res) => {
   }
 });
 
-router.post('/:id/services', async (req, res) => {
+router.post('/:id/services', upload.single('image'), processUploadedImage, async (req, res) => {
   try {
-    const newService = await addProviderService(req.app.locals.db, req.params.id, req.body);
+    const serviceData = req.body;
+    if (req.uploadedImagePath) {
+      serviceData.image = req.uploadedImagePath;
+    }
+    const newService = await addProviderService(req.app.locals.db, req.params.id, serviceData);
     res.status(201).json(newService);
   } catch (error) {
     console.error('Error adding provider service:', error);
@@ -70,9 +74,13 @@ router.post('/:id/services', async (req, res) => {
   }
 });
 
-router.put('/:id/services/:serviceId', async (req, res) => {
+router.put('/:id/services/:serviceId', upload.single('image'), processUploadedImage, async (req, res) => {
   try {
-    const updatedService = await updateProviderService(req.app.locals.db, req.params.id, req.params.serviceId, req.body);
+    const serviceData = req.body;
+    if (req.uploadedImagePath) {
+      serviceData.image = req.uploadedImagePath;
+    }
+    const updatedService = await updateProviderService(req.app.locals.db, req.params.id, req.params.serviceId, serviceData);
     res.json(updatedService);
   } catch (error) {
     console.error('Error updating provider service:', error);

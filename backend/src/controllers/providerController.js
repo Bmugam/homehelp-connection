@@ -89,7 +89,7 @@ const getProvidersByService = async (db, serviceId) => {
       JOIN providers p ON ps.provider_id = p.id
       JOIN users u ON p.user_id = u.id
       WHERE ps.service_id = ?
-      ORDER BY p.average_rating DESC NULLS LAST
+      ORDER BY (p.average_rating IS NULL), p.average_rating DESC
     `, [serviceId]);
 
     if (!providers.length) {
@@ -97,13 +97,15 @@ const getProvidersByService = async (db, serviceId) => {
       return [];
     }
 
-    const enhancedProviders = providers.map(provider => ({
-      ...provider,
-      average_rating: Number(provider.average_rating || 0),
-      review_count: Number(provider.review_count || 0),
-      price: Number(provider.price || 0),
-      availability: provider.availability ? JSON.parse(provider.availability) : null
-    }));
+      const enhancedProviders = providers.map(provider => ({
+        ...provider,
+        average_rating: Number(provider.average_rating || 0),
+        review_count: Number(provider.review_count || 0),
+        price: Number(provider.price || 0),
+        availability: provider.availability
+          ? (typeof provider.availability === 'string' ? JSON.parse(provider.availability) : provider.availability)
+          : null
+      }));
 
     debug(`Found ${enhancedProviders.length} providers for service ID: ${serviceId}`);
     return enhancedProviders;
@@ -143,7 +145,7 @@ const getProviderById = async (db, id) => {
 
     // Get provider services
     const [services] = await db.query(`
-      SELECT s.id, s.name, ps.price, ps.description
+      SELECT s.id, s.name, s.image, ps.price, ps.description
       FROM provider_services ps
       JOIN services s ON ps.service_id = s.id
       WHERE ps.provider_id = ?
@@ -213,7 +215,7 @@ const getProviderServices = async (db, id) => {
     const providerId = await getProviderId(db, id);
     
     const [services] = await db.query(`
-      SELECT ps.id, ps.service_id, s.name, ps.price, ps.description, ps.availability
+      SELECT ps.id, ps.service_id, s.name, s.image, ps.price, ps.description, ps.availability
       FROM provider_services ps
       JOIN services s ON ps.service_id = s.id
       WHERE ps.provider_id = ?

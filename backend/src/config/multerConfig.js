@@ -23,11 +23,12 @@ const storage = multer.diskStorage({
     let uploadPath = UPLOAD_BASE_DIR;
     
     // Determine the upload directory based on the route or file type
-    if (req.baseUrl.includes('/users')) {
+    const url = req.originalUrl || '';
+    if (url.includes('/users')) {
       uploadPath = path.join(UPLOAD_BASE_DIR, 'users');
-    } else if (req.baseUrl.includes('/providers')) {
+    } else if (url.includes('/providers')) {
       uploadPath = path.join(UPLOAD_BASE_DIR, 'providers');
-    } else if (req.baseUrl.includes('/services')) {
+    } else if (url.includes('/services')) {
       uploadPath = path.join(UPLOAD_BASE_DIR, 'services');
     }
 

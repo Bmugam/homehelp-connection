@@ -395,19 +395,18 @@ const ProviderSettings = () => {
       } else if (section === 'services') {
         if (serviceForm.service_id) {
           const availabilityHoursObj = convertToAvailabilityHours(serviceForm.availability);
+          const formData = new FormData();
+          if (serviceForm.image) {
+            formData.append('image', serviceForm.image);
+          }
+          formData.append('service_id', serviceForm.service_id);
+          formData.append('price', serviceForm.price.toString());
+          formData.append('description', serviceForm.description);
+          formData.append('availability', JSON.stringify(availabilityHoursObj));
           if (selectedService) {
-            await updateProviderService(user.id.toString(), selectedService.id, {
-              price: serviceForm.price,
-              description: serviceForm.description,
-              availability: availabilityHoursObj
-            });
+            await updateProviderService(user.id.toString(), selectedService.id, formData);
           } else {
-            await addProviderService(user.id.toString(), {
-              service_id: Number(serviceForm.service_id),
-              price: serviceForm.price,
-              description: serviceForm.description,
-              availability: availabilityHoursObj
-            });
+            await addProviderService(user.id.toString(), formData);
           }
           const updatedServices = await getProviderServices(user.id.toString());
           setServices(updatedServices);

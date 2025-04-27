@@ -270,6 +270,9 @@ export const apiService = {
           'Content-Type': 'multipart/form-data'
         }
       }),
+    removeProfileImage: (providerId: string) => {
+      return axios.delete(`/api/providers/${providerId}/remove-image`);
+    },
   },
 
   // Bookings endpoints

@@ -125,11 +125,18 @@ const Services = () => {
 
   const handleServiceClick = async (serviceId: string) => {
     try {
+      console.log(`handleServiceClick called with serviceId: ${serviceId}`);
       const service = servicesData.find(s => s.id === serviceId);
-      if (!service) return;
+      if (!service) {
+        console.error(`Service not found for id: ${serviceId}`);
+        return;
+      }
+      console.log('Selected service:', service);
 
       setSelectedService(service);
       const response = await apiService.providers.getByService(serviceId);
+      console.log('API response from getByService:', response);
+
       const providers = response.data as Provider[];
       console.log('Providers fetched by service:', providers);
 
@@ -142,6 +149,7 @@ const Services = () => {
             return null;
           }
           const detailResponse = await apiService.providers.getById(providerId.toString());
+          console.log(`Detail response for provider ${providerId}:`, detailResponse);
           const detailedProvider = detailResponse.data as Provider;
           // Map provider_id to id for BookingModal compatibility
           // Ensure services array includes the selected service for BookingModal

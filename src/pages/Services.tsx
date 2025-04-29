@@ -84,7 +84,7 @@ const Services = () => {
           throw new Error('No data received from API');
         }
 
-        const services: Service[] = (response.data as Service[]) || [];
+        const services = response.data as unknown as Service[];
         setServicesData(services);
         setFilteredServices(services);
         
@@ -570,12 +570,12 @@ const Services = () => {
                           </p>
                           
                           <div className="mt-auto">
-                            {Array.isArray(service.providers) && service.providers.length > 0 && (
+                            {service.providers && (
                               <div className="flex items-center justify-between pt-3 border-t">
                                 <div>
                                   <span className="font-bold text-gray-900">
                                     ${(() => {
-                                      const price = service.providers[0].price;
+                                      const price = service.providers[0]?.price;
                                       return typeof price === 'number' 
                                         ? price.toFixed(2)
                                         : parseFloat(String(price || 0)).toFixed(2);
@@ -585,7 +585,7 @@ const Services = () => {
                                 </div>
                                 <div className="flex items-center">
                                   <span className="text-xs text-blue-600 font-medium bg-blue-50 px-2 py-1 rounded-full">
-                                    {service.providers.length} {service.providers.length === 1 ? 'Provider' : 'Providers'}
+                                    {Array.isArray(service.providers) ? service.providers.length : 0} {service.providers?.length === 1 ? 'Provider' : 'Providers'}
                                   </span>
                                 </div>
                               </div>
@@ -606,8 +606,8 @@ const Services = () => {
                       <PaginationItem>
                         <PaginationPrevious 
                           onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                          disabled={currentPage === 1}
-                          className={currentPage === 1 ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-50"}
+                          aria-disabled={currentPage === 1}
+                          className={currentPage === 1 ? "opacity-50 pointer-events-none" : "hover:bg-blue-50"}
                         />
                       </PaginationItem>
                       
@@ -639,8 +639,8 @@ const Services = () => {
                       <PaginationItem>
                         <PaginationNext 
                           onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                          disabled={currentPage === totalPages}
-                          className={currentPage === totalPages ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-50"}
+                          aria-disabled={currentPage === totalPages}
+                          className={currentPage === totalPages ? "opacity-50 pointer-events-none" : "hover:bg-blue-50"}
                         />
                       </PaginationItem>
                     </PaginationContent>
@@ -666,7 +666,8 @@ const Services = () => {
       />
             
       {/* Add this CSS at the bottom */}
-      <style jsx>{`
+      <style>
+        {`
         .styled-scrollbar::-webkit-scrollbar {
           width: 6px;
         }
@@ -695,9 +696,10 @@ const Services = () => {
         }
         
         .bg-pattern {
-          background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+          background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM36 4V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
         }
-      `}</style>
+        `}
+      </style>
     </div>
   );
 };

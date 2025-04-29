@@ -25,11 +25,13 @@ const ProviderLayout = ({ children }: { children: React.ReactNode }) => {
 
   const navItems = [
     { name: "Dashboard", path: "/providers-dashboard", icon: LayoutDashboard },
+    { name: "My Services", path: "/providers-dashboard/my-services", icon: Users },
     { name: "Appointments", path: "/providers-dashboard/appointments", icon: Calendar },
     { name: "Messages", path: "/providers-dashboard/messages", icon: MessageSquare },
     { name: "Clients", path: "/providers-dashboard/clients", icon: Users },
     { name: "Payments", path: "/providers-dashboard/payments", icon: CreditCard },
     { name: "Settings", path: "/providers-dashboard/settings", icon: Settings },
+    
   ];
 
   return (

@@ -84,13 +84,21 @@ export const getProviderServices = async (id: string) => {
   return response.data;
 };
 
-export const addProviderService = async (id: string, serviceData: ServiceData) => {
-  const response = await api.post(`/api/providers/${id}/services`, serviceData);
+export const addProviderService = async (id: string, serviceData: FormData) => {
+  const response = await api.post(`/api/providers/${id}/services`, serviceData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
   return response.data;
 };
 
-export const updateProviderService = async (id: string, serviceId: number, serviceData: ServiceUpdateData) => {
-  const response = await api.put(`/api/providers/${id}/services/${serviceId}`, serviceData);
+export const updateProviderService = async (id: string, serviceId: number, serviceData: FormData) => {
+  const response = await api.put(`/api/providers/${id}/services/${serviceId}`, serviceData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
   return response.data;
 };
 

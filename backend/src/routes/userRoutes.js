@@ -8,6 +8,9 @@ router.get('/:id', userController.getUser);
 // Route to update a user by ID
 router.put('/:id', userController.updateUser);
 
+// Route to upload profile image
+router.put('/:id/upload-image', userController.uploadProfileImage);
+
 // Routes for user notification settings
 router.get('/:id/notifications', userController.getUserNotifications);
 router.put('/:id/notifications', userController.updateUserNotifications);

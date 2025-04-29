@@ -1,4 +1,4 @@
- import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
+import { apiService } from '@/services/api';
 import {
   User,
   Bell,
@@ -29,6 +30,7 @@ import {
   addProviderService,
   updateProviderService
 } from '@/services/providerService';
+import { getImageUrl } from '@/utils/imageUtils';
 
 const ProviderSettings = () => {
   const { user } = useAuth();
@@ -68,14 +70,12 @@ const ProviderSettings = () => {
     };
   };
 
-  const { first_name, last_name } = splitName(user?.name);
-
   const [profileForm, setProfileForm] = useState({
     email: user?.email || "",
     phone_number: user?.phone || "",
-    first_name: first_name,
-    last_name: last_name,
-    profile_image: user?.profile_image || "",
+    first_name: splitName(user?.name).first_name,
+    last_name: splitName(user?.name).last_name,
+    profile_image: user?.profile_image ? getImageUrl(user?.profile_image) : "",
     business_name: "",
     business_description: "",
     location: "",
@@ -94,6 +94,7 @@ const ProviderSettings = () => {
 
   const [services, setServices] = useState([]);
   const [selectedService, setSelectedService] = useState(null);
+  // Update the serviceForm state to include image
   const [serviceForm, setServiceForm] = useState({
     service_id: "",
     price: "",
@@ -101,7 +102,9 @@ const ProviderSettings = () => {
     availability: {
       weekdays: true,
       weekends: true
-    }
+    },
+    image: null as File | null,
+    imagePreview: null as string | null
   });
 
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
@@ -138,8 +141,33 @@ const ProviderSettings = () => {
     setIsServiceModalOpen(false);
   };
 
+  // Add image handling functions
+  const handleServiceImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const preview = URL.createObjectURL(file);
+    setServiceForm(prev => ({
+      ...prev,
+      image: file,
+      imagePreview: preview
+    }));
+  };
+
+  const handleRemoveServiceImage = () => {
+    if (serviceForm.imagePreview) {
+      URL.revokeObjectURL(serviceForm.imagePreview);
+    }
+    setServiceForm(prev => ({
+      ...prev,
+      image: null,
+      imagePreview: null
+    }));
+  };
+
   const handleServiceFormSubmit = async () => {
     if (!user?.id) {
+      console.error('Authentication error: No user ID');
       toast({
         title: "Error",
         description: "User not authenticated.",
@@ -149,32 +177,48 @@ const ProviderSettings = () => {
     }
     setLoading(true);
     try {
+      console.log('Preparing service form submission:', serviceForm);
       const availabilityHoursObj = convertToAvailabilityHours(serviceForm.availability);
-      if (selectedService) {
-        await updateProviderService(user.id.toString(), selectedService.id, {
-          price: serviceForm.price,
-          description: serviceForm.description,
-          availability: availabilityHoursObj
-        });
-      } else {
-        await addProviderService(user.id.toString(), {
-          service_id: Number(serviceForm.service_id),
-          price: serviceForm.price,
-          description: serviceForm.description,
-          availability: availabilityHoursObj
-        });
+      const formData = new FormData();
+      
+      if (serviceForm.image) {
+        console.log('Appending image to form data');
+        formData.append('image', serviceForm.image);
       }
+      formData.append('service_id', serviceForm.service_id);
+      formData.append('price', serviceForm.price.toString());
+      formData.append('description', serviceForm.description);
+      formData.append('availability', JSON.stringify(availabilityHoursObj));
+
+      console.log('Form data prepared:', {
+        service_id: serviceForm.service_id,
+        price: serviceForm.price,
+        description: serviceForm.description,
+        has_image: !!serviceForm.image
+      });
+
+      if (selectedService) {
+        console.log('Updating existing service:', selectedService.id);
+        await updateProviderService(user.id.toString(), selectedService.id, formData);
+      } else {
+        console.log('Adding new service');
+        await addProviderService(user.id.toString(), formData);
+      }
+
       const updatedServices = await getProviderServices(user.id.toString());
+      console.log('Services updated successfully:', updatedServices);
       setServices(updatedServices);
+      
       toast({
         title: "Success",
         description: `Service ${selectedService ? "updated" : "added"} successfully.`,
       });
       closeServiceModal();
     } catch (err) {
+      console.error('Service submission error:', err);
       toast({
         title: "Error",
-        description: `Failed to ${selectedService ? "update" : "add"} service.`,
+        description: `Failed to ${selectedService ? "update" : "add"} service. ${err.message}`,
         variant: "destructive"
       });
     } finally {
@@ -191,6 +235,15 @@ const ProviderSettings = () => {
 
 
   useEffect(() => {
+    if (user?.profile_image) {
+      setProfileForm(prev => ({
+        ...prev,
+        profile_image: getImageUrl(user.profile_image)
+      }));
+    }
+  }, [user?.profile_image]);
+
+  useEffect(() => {
     const fetchProviderData = async () => {
       if (!user?.id) return;
       setLoading(true);
@@ -202,7 +255,8 @@ const ProviderSettings = () => {
           business_name: providerData.business_name || "",
           business_description: providerData.bio || "",
           location: providerData.location || "",
-          verification_status: providerData.verification_status || "pending"
+          verification_status: providerData.verification_status || "pending",
+          profile_image: providerData.profile_image ? getImageUrl(providerData.profile_image) : ""
         }));
         if (providerData.availability_hours) {
           setAvailabilityHours(providerData.availability_hours);
@@ -224,6 +278,35 @@ const ProviderSettings = () => {
       ...prev,
       [name]: value
     }));
+  };
+
+  // Add new state for temporary image
+  const [tempImage, setTempImage] = useState<{
+    file: File | null;
+    preview: string | null;
+  }>({ file: null, preview: null });
+
+  // Modify handleImageChange to store image temporarily
+  const handleImageChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Create temporary preview URL
+    const preview = URL.createObjectURL(file);
+    setTempImage({ file, preview });
+  };
+
+  // Modify handleRemoveImage to handle both temporary and saved images
+  const handleRemoveImage = () => {
+    if (tempImage.preview) {
+      URL.revokeObjectURL(tempImage.preview);
+      setTempImage({ file: null, preview: null });
+    } else {
+      setProfileForm(prev => ({
+        ...prev,
+        profile_image: ""
+      }));
+    }
   };
 
   const handleAvailabilityChange = (day, field, value) => {
@@ -274,14 +357,37 @@ const ProviderSettings = () => {
     setError(null);
     try {
       if (section === 'profile') {
+        // Upload image first if there's a temporary image
+        let uploadedImagePath = profileForm.profile_image;
+        if (tempImage.file) {
+          const formData = new FormData();
+          formData.append('image', tempImage.file);
+          const response = await apiService.providers.uploadProfileImage(user.id, formData);
+          uploadedImagePath = response.data.profile_image;
+        }
+
         // Combine first_name and last_name into full name
         const fullName = `${profileForm.first_name} ${profileForm.last_name}`.trim();
         await updateProviderProfile(user.id.toString(), {
           name: fullName,
           business_name: profileForm.business_name,
           business_description: profileForm.business_description,
-          location: profileForm.location
+          location: profileForm.location,
+          profile_image: uploadedImagePath
         });
+
+        // Update state with the saved image
+        if (uploadedImagePath) {
+          setProfileForm(prev => ({
+            ...prev,
+            profile_image: uploadedImagePath
+          }));
+          // Clear temporary image
+          if (tempImage.preview) {
+            URL.revokeObjectURL(tempImage.preview);
+          }
+          setTempImage({ file: null, preview: null });
+        }
       } else if (section === 'availability') {
         await updateProviderAvailability(user.id.toString(), {
           availability_hours: availabilityHours
@@ -289,19 +395,18 @@ const ProviderSettings = () => {
       } else if (section === 'services') {
         if (serviceForm.service_id) {
           const availabilityHoursObj = convertToAvailabilityHours(serviceForm.availability);
+          const formData = new FormData();
+          if (serviceForm.image) {
+            formData.append('image', serviceForm.image);
+          }
+          formData.append('service_id', serviceForm.service_id);
+          formData.append('price', serviceForm.price.toString());
+          formData.append('description', serviceForm.description);
+          formData.append('availability', JSON.stringify(availabilityHoursObj));
           if (selectedService) {
-            await updateProviderService(user.id.toString(), selectedService.id, {
-              price: serviceForm.price,
-              description: serviceForm.description,
-              availability: availabilityHoursObj
-            });
+            await updateProviderService(user.id.toString(), selectedService.id, formData);
           } else {
-            await addProviderService(user.id.toString(), {
-              service_id: Number(serviceForm.service_id),
-              price: serviceForm.price,
-              description: serviceForm.description,
-              availability: availabilityHoursObj
-            });
+            await addProviderService(user.id.toString(), formData);
           }
           const updatedServices = await getProviderServices(user.id.toString());
           setServices(updatedServices);
@@ -324,6 +429,15 @@ const ProviderSettings = () => {
       setLoading(false);
     }
   };
+
+  // Cleanup temporary image URL on component unmount
+  useEffect(() => {
+    return () => {
+      if (tempImage.preview) {
+        URL.revokeObjectURL(tempImage.preview);
+      }
+    };
+  }, []);
 
   return (
     <div>
@@ -361,10 +475,10 @@ const ProviderSettings = () => {
             
             <div className="flex flex-col md:flex-row gap-8">
               <div className="md:w-1/3 flex flex-col items-center">
-                <div className="w-32 h-32 rounded-full bg-homehelp-200 mb-4 overflow-hidden">
-                  {profileForm.profile_image ? (
+                <div className="w-32 h-32 rounded-full bg-homehelp-200 mb-4 overflow-hidden relative">
+                  {(tempImage.preview || profileForm.profile_image) ? (
                     <img 
-                      src={profileForm.profile_image}
+                      src={tempImage.preview || getImageUrl(profileForm.profile_image)}
                       alt="Profile" 
                       className="w-full h-full object-cover"
                     />
@@ -373,8 +487,34 @@ const ProviderSettings = () => {
                       <User size={40} />
                     </div>
                   )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    id="profileImageInput"
+                    className="hidden"
+                    onChange={handleImageChange}
+                  />
                 </div>
-                <Button variant="outline" size="sm" className="mb-2">Change Photo</Button>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mb-2" 
+                    onClick={() => document.getElementById('profileImageInput').click()}
+                  >
+                    Change Photo
+                  </Button>
+                  {tempImage.preview && (
+                    <Button 
+                      variant="destructive" 
+                      size="sm" 
+                      className="mb-2" 
+                      onClick={handleRemoveImage}
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </div>
                 <p className="text-xs text-homehelp-600 text-center">
                   Recommended: Square JPG, PNG <br />at least 300x300px
                 </p>
@@ -493,6 +633,19 @@ const ProviderSettings = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {services.map((service) => (
                   <Card key={service.id} className="p-4 border border-homehelp-200">
+                    {service.image && (
+                      <div className="w-full h-40 mb-4 rounded-md overflow-hidden">
+                        <img 
+                          src={getImageUrl(service.image)}
+                          alt={service.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            console.error(`Failed to load image for service: ${service.name}`);
+                            e.currentTarget.src = '/placeholder-service.jpg'; // Add a placeholder image
+                          }}
+                        />
+                      </div>
+                    )}
                     <div className="flex justify-between">
                       <h3 className="font-medium text-homehelp-900">{service.name}</h3>
                       <div className="flex gap-1 text-yellow-500">
@@ -522,6 +675,47 @@ const ProviderSettings = () => {
                   <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
                     <h3 className="text-lg font-medium text-homehelp-900 mb-4">{selectedService ? "Edit Service" : "Add New Service"}</h3>
                     <div className="space-y-4">
+                      {/* Add this new image section before other form fields */}
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-full h-48 border-2 border-dashed border-homehelp-300 rounded-lg overflow-hidden relative">
+                          {(serviceForm.imagePreview || selectedService?.image) ? (
+                            <img 
+                              src={serviceForm.imagePreview || getImageUrl(selectedService?.image)}
+                              alt="Service preview" 
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-homehelp-50 text-homehelp-500">
+                              <span className="text-sm">Upload service image</span>
+                            </div>
+                          )}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            id="serviceImageInput"
+                            className="hidden"
+                            onChange={handleServiceImageChange}
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => document.getElementById('serviceImageInput')?.click()}
+                          >
+                            {serviceForm.image ? 'Change Image' : 'Upload Image'}
+                          </Button>
+                          {(serviceForm.image || selectedService?.image) && (
+                            <Button 
+                              variant="destructive" 
+                              size="sm"
+                              onClick={handleRemoveServiceImage}
+                            >
+                              Remove
+                            </Button>
+                          )}
+                        </div>
+                      </div>
                       <div>
                         <Label htmlFor="service_id">Service Type</Label>
                         <select 

@@ -41,17 +41,17 @@ export function ProviderListModal({ isOpen, onClose, providers, serviceName, sel
               <Card key={provider.id} className="p-4">
                 <div className="flex gap-4">
                   <img
-                    src={provider.image || "https://via.placeholder.com/100"}
-                    alt={provider.name}
+                    src={provider.profile_image || "https://via.placeholder.com/100"}
+                    alt={provider.name || `${provider.first_name} ${provider.last_name}`}
                     className="w-24 h-24 rounded-lg object-cover"
                   />
                   <div className="flex-1">
                     <h3 className="font-semibold text-lg">
-                      {provider.name}
+                      {provider.name || `${provider.first_name} ${provider.last_name}`}
                     </h3>
                     <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
                       <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                      <span>{(provider.rating ?? 0).toFixed(1)} ({provider.reviews ?? 0} reviews)</span>
+                      <span>{(parseFloat(provider.average_rating) || 0).toFixed(1)} ({provider.review_count || 0} reviews)</span>
                       <span>•</span>
                       <span>{provider.location}</span>
                     </div>

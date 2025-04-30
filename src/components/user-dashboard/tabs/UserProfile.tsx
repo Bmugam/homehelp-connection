@@ -10,14 +10,14 @@ import { Textarea } from '../../ui/textarea';
 import { Alert, AlertDescription } from '../../ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../ui/tabs';
 import { Avatar, AvatarImage, AvatarFallback } from '../../ui/avatar';
-import { useAuth } from '../../../contexts/AuthContext';
+import  {useAuth}  from '@/contexts/Authcontext';
 
 interface ClientProfileProps {
   onDelete?: () => Promise<void>;
 }
 
 const ClientProfile = ({ onDelete }: ClientProfileProps) => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
 
   // Initialize with default values
   const defaultUserData: UserData = {
@@ -43,6 +43,8 @@ const ClientProfile = ({ onDelete }: ClientProfileProps) => {
 
   const [userForm, setUserForm] = useState<UserData>({...defaultUserData});
   const [clientForm, setClientForm] = useState<ClientData>({...defaultClientData});
+  const [locationLat, setLocationLat] = useState<string>('');
+  const [locationLong, setLocationLong] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -51,6 +53,7 @@ const ClientProfile = ({ onDelete }: ClientProfileProps) => {
   const [activeTab, setActiveTab] = useState('personal');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch user and client data on mount
@@ -63,16 +66,67 @@ const ClientProfile = ({ onDelete }: ClientProfileProps) => {
       setLoading(true);
       setError(null);
       try {
-        console.log('Fetching user data...');
-        const userResponse = await userService.getUser(user.id);
-        console.log('User data fetched:', userResponse);
-        setUserForm(userResponse as UserData);
-        setImagePreview((userResponse as UserData).profile_image || null);
+        const authToken = token || '';
+        console.log('Fetching combined client and user data with token:', authToken);
+        const combinedData = await userService.getClient(user.id, authToken);
+        console.log('Combined data fetched:', combinedData);
 
-        console.log('Fetching client data...');
-        const clientResponse = await userService.getClient(user.id);
-        console.log('Client data fetched:', clientResponse);
-        setClientForm(clientResponse as ClientData);
+        // Cast combinedData to expected type to avoid TS errors
+        const data = combinedData as {
+          user_id: number;
+          email: string;
+          phone_number: string;
+          first_name: string;
+          last_name: string;
+          profile_image: string;
+          created_at: string;
+          updated_at: string;
+          id: number;
+          address: string;
+          location_coordinates: string | { coordinates: [number, number] };
+        };
+
+        // Split combined data into userForm and clientForm
+        setUserForm({
+          id: data.user_id || 0,
+          email: data.email || '',
+          phone_number: data.phone_number || '',
+          first_name: data.first_name || '',
+          last_name: data.last_name || '',
+          profile_image: data.profile_image || '',
+          user_type: 'client',
+          created_at: data.created_at || '',
+          updated_at: data.updated_at || '',
+        });
+
+        setImagePreview(data.profile_image || null);
+
+        setClientForm({
+          id: data.id || 0,
+          user_id: data.user_id || 0,
+          address: data.address || '',
+          location_coordinates: typeof data.location_coordinates === 'string'
+            ? data.location_coordinates
+            : data.location_coordinates && data.location_coordinates.coordinates
+              ? `${data.location_coordinates.coordinates[1]},${data.location_coordinates.coordinates[0]}`
+              : '',
+          created_at: data.created_at || '',
+          updated_at: data.updated_at || '',
+        });
+
+        // Set separate lat and long state from location_coordinates string
+        if (typeof data.location_coordinates === 'string' && data.location_coordinates.includes(',')) {
+          const [lat, long] = data.location_coordinates.split(',');
+          setLocationLat(lat);
+          setLocationLong(long);
+        } else if (data.location_coordinates && typeof data.location_coordinates === 'object' && 'coordinates' in data.location_coordinates) {
+          // If coordinates object, set lat and long accordingly
+          setLocationLat(String(data.location_coordinates.coordinates[1]));
+          setLocationLong(String(data.location_coordinates.coordinates[0]));
+        } else {
+          setLocationLat('');
+          setLocationLong('');
+        }
       } catch (err) {
         console.error('Error fetching data:', err);
         setError('Failed to fetch user data.');
@@ -103,6 +157,29 @@ const ClientProfile = ({ onDelete }: ClientProfileProps) => {
       setValidationErrors(prev => {
         const updated = {...prev};
         delete updated[`client_${field}`];
+        return updated;
+      });
+    }
+  };
+
+  // New handlers for latitude and longitude input changes
+  const handleLocationLatChange = (value: string) => {
+    setLocationLat(value);
+    if (validationErrors['location_lat']) {
+      setValidationErrors(prev => {
+        const updated = {...prev};
+        delete updated['location_lat'];
+        return updated;
+      });
+    }
+  };
+
+  const handleLocationLongChange = (value: string) => {
+    setLocationLong(value);
+    if (validationErrors['location_long']) {
+      setValidationErrors(prev => {
+        const updated = {...prev};
+        delete updated['location_long'];
         return updated;
       });
     }
@@ -159,6 +236,14 @@ const ClientProfile = ({ onDelete }: ClientProfileProps) => {
     if (!clientForm.address?.trim()) {
       errors.client_address = "Address is required";
     }
+
+    // Validate latitude and longitude separately
+    if (locationLat && !/^[-+]?([1-8]?\d(\.\d+)?|90(\.0+)?)$/.test(locationLat)) {
+      errors.location_lat = "Please enter a valid latitude between -90 and 90.";
+    }
+    if (locationLong && !/^[-+]?((1[0-7]\d)|([1-9]?\d))(\.\d+)?$|^[-+]?180(\.0+)?$/.test(locationLong)) {
+      errors.location_long = "Please enter a valid longitude between -180 and 180.";
+    }
     
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
@@ -169,15 +254,15 @@ const ClientProfile = ({ onDelete }: ClientProfileProps) => {
     setLoading(true);
     setError(null);
     try {
-      if (imageFile) {
-        await userService.uploadProfileImage(userData.id, imageFile);
-      }
-      await userService.updateUser(userData.id, userData);
-      await userService.updateClient(clientData.id, clientData);
+      const authToken = token || '';
+      console.log('Updating user data with token:', authToken);
+      await userService.updateUser(userData.id, userData, authToken);
+      console.log('Updating client data with token:', authToken);
+      await userService.updateClient(clientData.id, clientData, authToken);
     } catch (err: unknown) {
       let errorMessage = 'An error occurred';
       if (typeof err === 'object' && err !== null && 'response' in err) {
-        // @ts-expect-error
+        // @ts-expect-error TS expects error response shape
         errorMessage = err.response?.data?.message || errorMessage;
       } else if (err instanceof Error) {
         errorMessage = err.message;
@@ -194,13 +279,15 @@ const ClientProfile = ({ onDelete }: ClientProfileProps) => {
     setLoading(true);
     setError(null);
     try {
-      if (!userForm.id) throw new Error('User ID is required');
-      await userService.deleteUser(userForm.id);
+      const authToken = token || '';
+      if (user) {
+        await userService.deleteUser(user.id, authToken);
+      }
       if (onDelete) await onDelete();
     } catch (err: unknown) {
       let errorMessage = 'An error occurred';
       if (typeof err === 'object' && err !== null && 'response' in err) {
-        // @ts-expect-error
+        // @ts-expect-error TS expects error response shape
         errorMessage = err.response?.data?.message || errorMessage;
       } else if (err instanceof Error) {
         errorMessage = err.message;
@@ -215,13 +302,35 @@ const ClientProfile = ({ onDelete }: ClientProfileProps) => {
 
   const handleSubmit = async () => {
     if (!validateForm()) return;
-    
+
     setLoading(true);
     setError(null);
     setSuccess(false);
-    
+
     try {
-      await handleUpdate(userForm, clientForm, imageFile || undefined);
+      const updatedUserForm = { ...userForm };
+      const updatedClientForm = { ...clientForm };
+
+      // Combine separate lat and long into location_coordinates string
+      if (locationLat && locationLong) {
+        updatedClientForm.location_coordinates = `${locationLat},${locationLong}`;
+      } else {
+        updatedClientForm.location_coordinates = '';
+      }
+
+      // If there is an image file selected, upload it first
+      if (imageFile) {
+        const authToken = token || '';
+        const uploadResult = await userService.uploadProfileImage(clientForm.id, imageFile, authToken);
+        if (uploadResult && uploadResult.profile_image) {
+          updatedUserForm.profile_image = uploadResult.profile_image;
+          setImagePreview(uploadResult.profile_image);
+        }
+      }
+
+      await handleUpdate(updatedUserForm, updatedClientForm);
+      setUserForm(updatedUserForm);
+      setClientForm(updatedClientForm);
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err: unknown) {
@@ -254,6 +363,17 @@ const ClientProfile = ({ onDelete }: ClientProfileProps) => {
   const handleCancel = () => {
     setUserForm({...defaultUserData, ...userForm});
     setClientForm({...defaultClientData, ...clientForm});
+
+    // Reset lat and long states from clientForm.location_coordinates
+    if (clientForm.location_coordinates && clientForm.location_coordinates.includes(',')) {
+      const [lat, long] = clientForm.location_coordinates.split(',');
+      setLocationLat(lat);
+      setLocationLong(long);
+    } else {
+      setLocationLat('');
+      setLocationLong('');
+    }
+
     setValidationErrors({});
     setImagePreview(userForm?.profile_image || null);
     setImageFile(null);
@@ -469,10 +589,17 @@ const ClientProfile = ({ onDelete }: ClientProfileProps) => {
                     <Input
                       id="location_lat"
                       type="text"
-                      value={clientForm.location_coordinates?.split(',')[0] || ''}
+                      value={locationLat}
                       onChange={e => {
-                        const long = clientForm.location_coordinates?.split(',')[1] || '';
-                        handleClientFormChange('location_coordinates', `${e.target.value},${long}`);
+                        const lat = e.target.value.trim();
+                        // Validate latitude input
+                        if (lat && !/^[-+]?([1-8]?\d(\.\d+)?|90(\.0+)?)$/.test(lat)) {
+                          setError('Please enter a valid latitude between -90 and 90.');
+                          return;
+                        } else {
+                          setError(null);
+                        }
+                        handleLocationLatChange(lat);
                       }}
                       placeholder="40.7128"
                     />
@@ -485,10 +612,17 @@ const ClientProfile = ({ onDelete }: ClientProfileProps) => {
                     <Input
                       id="location_long"
                       type="text"
-                      value={clientForm.location_coordinates?.split(',')[1] || ''}
+                      value={locationLong}
                       onChange={e => {
-                        const lat = clientForm.location_coordinates?.split(',')[0] || '';
-                        handleClientFormChange('location_coordinates', `${lat},${e.target.value}`);
+                        const long = e.target.value.trim();
+                        // Validate longitude input
+                        if (long && !/^[-+]?((1[0-7]\d)|([1-9]?\d))(\.\d+)?$|^[-+]?180(\.0+)?$/.test(long)) {
+                          setError('Please enter a valid longitude between -180 and 180.');
+                          return;
+                        } else {
+                          setError(null);
+                        }
+                        handleLocationLongChange(long);
                       }}
                       placeholder="-74.0060"
                     />
@@ -496,28 +630,64 @@ const ClientProfile = ({ onDelete }: ClientProfileProps) => {
                 </div>
                 
                 <div className="flex justify-center mt-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
                       if (navigator.geolocation) {
+                        setIsLocating(true);
+                        setError(null);
                         navigator.geolocation.getCurrentPosition(
                           (position) => {
-                            const coords = `${position.coords.latitude},${position.coords.longitude}`;
-                            handleClientFormChange('location_coordinates', coords);
+                            const lat = position.coords.latitude.toFixed(6);
+                            const long = position.coords.longitude.toFixed(6);
+                            // Validate coordinates before setting
+                            const latNum = Number(lat);
+                            const longNum = Number(long);
+                            if (
+                              isNaN(latNum) || isNaN(longNum) ||
+                              latNum < -90 || latNum > 90 ||
+                              longNum < -180 || longNum > 180
+                            ) {
+                              setError('Received invalid location coordinates.');
+                              setIsLocating(false);
+                              return;
+                            }
+                            setLocationLat(lat);
+                            setLocationLong(long);
+                            setIsLocating(false);
                           },
                           (error) => {
-                            setError(`Geolocation error: ${error.message}`);
+                            setIsLocating(false);
+                            switch(error.code) {
+                              case error.PERMISSION_DENIED:
+                                setError("Please allow location access to use this feature.");
+                                break;
+                              case error.POSITION_UNAVAILABLE:
+                                setError("Location information is unavailable.");
+                                break;
+                              case error.TIMEOUT:
+                                setError("Location request timed out.");
+                                break;
+                              default:
+                                setError("An unknown error occurred.");
+                            }
+                          },
+                          {
+                            enableHighAccuracy: true,
+                            timeout: 5000,
+                            maximumAge: 0
                           }
                         );
                       } else {
                         setError('Geolocation is not supported by this browser.');
                       }
                     }}
+                    disabled={isLocating}
                     className="text-sm"
                   >
                     <MapPin className="h-4 w-4 mr-2" />
-                    Use My Current Location
+                    {isLocating ? 'Getting Location...' : 'Use My Current Location'}
                   </Button>
                 </div>
               </div>

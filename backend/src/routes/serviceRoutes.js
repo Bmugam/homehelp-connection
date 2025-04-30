@@ -5,7 +5,7 @@ const { authenticateToken } = require('../middleware/auth');
 
 // Public routes
 router.get('/', serviceController.getAllServices);
-router.get('/categories', serviceController.getServiceCategories);
+router.get('/service-categories', serviceController.getServiceCategories);
 
 // Protected routes - require authentication
 router.use(authenticateToken);

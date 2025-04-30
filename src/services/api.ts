@@ -77,6 +77,14 @@ interface BookingUpdate {
 }
 
 interface Booking extends BookingCreate {
+  provider_id: any;
+  service_id: any;
+  time_slot: string;
+  provider_name: any;
+  provider: any;
+  business_name: any;
+  service_name: any;
+  service: any;
   id: string;
   userId: string;
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
@@ -180,6 +188,30 @@ export const apiService = {
       api.post('/auth/register/provider', data),
     getCurrentUser: () => 
       api.get('/auth/me'),
+  },
+
+  // Review endpoints
+  reviews: {
+    create: (data: { bookingId: string; rating: number; comment: string }) => 
+      api.post('/reviews', data),
+    getAll: () => 
+      api.get('/reviews'),
+    update: (id: string, data: { rating: number; comment: string }) => 
+      api.put(`/reviews/${id}`, data),
+    delete: (id: string) => 
+      api.delete(`/reviews/${id}`),
+  },
+
+  // Payment endpoints
+  payments: {
+    create: (data: { bookingId: string; amount: number; paymentMethod: string; status: string }) => 
+      api.post('/payments', data),
+    getAll: () => 
+      api.get('/payments'),
+    update: (id: string, data: { amount: number; paymentMethod: string; status: string }) => 
+      api.put(`/payments/${id}`, data),
+    delete: (id: string) => 
+      api.delete(`/payments/${id}`),
   },
 
   // Updated services endpoints

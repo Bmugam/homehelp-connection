@@ -21,6 +21,8 @@ const bookingController = {
         return res.status(404).json({ message: 'Client profile not found' });
       }
 
+      const client_id = clientRows[0].id;
+
       // 2. Verify provider exists and is active
       const [providerRows] = await db.query(
         'SELECT p.id FROM providers p JOIN users u ON p.user_id = u.id WHERE p.id = ? AND u.user_type = "provider"',
@@ -33,10 +35,12 @@ const bookingController = {
         return res.status(404).json({ message: 'Provider not found' });
       }
 
+      const provider_id = providerRows[0].id;
+
       // 3. Verify service belongs to provider
       const [serviceRows] = await db.query(
         'SELECT * FROM provider_services WHERE provider_id = ? AND service_id = ?',
-        [providerRows[0].id, serviceId]
+        [provider_id, serviceId]
       );
 
       if (serviceRows.length === 0) {
@@ -50,8 +54,8 @@ const bookingController = {
         (client_id, provider_id, service_id, date, time_slot, location, notes, status)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          clientRows[0].id,
-          providerRows[0].id,
+          client_id,
+          provider_id,
           serviceId,
           date,
           time,
@@ -62,14 +66,21 @@ const bookingController = {
       );
 
       // 5. Create notification for provider
-      await db.query(
-        `INSERT INTO notifications (user_id, type, content)
-         VALUES (?, 'new_booking', ?)`,
-        [
-          providerId,
-          `New booking request for ${date} at ${time}`
-        ]
+      const [providerUserRow] = await db.query(
+        'SELECT user_id FROM providers WHERE id = ?',
+        [provider_id]
       );
+
+      if (providerUserRow.length > 0) {
+        await db.query(
+          `INSERT INTO notifications (user_id, type, content)
+           VALUES (?, 'new_booking', ?)`,
+          [
+            providerUserRow[0].user_id,
+            `New booking request for ${date} at ${time}`
+          ]
+        );
+      }
 
       await db.query('COMMIT');
 
@@ -90,19 +101,40 @@ const bookingController = {
     try {
       const user_id = req.user.id;
 
+      // First, get the client ID for this user
+      const [clientRows] = await db.query(
+        'SELECT id FROM clients WHERE user_id = ?',
+        [user_id]
+      );
+
+      if (clientRows.length === 0) {
+        return res.status(404).json({ message: 'Client profile not found' });
+      }
+
+      const client_id = clientRows[0].id;
+
       // Get client's bookings with provider and service details
       const [bookings] = await db.query(`
         SELECT 
-          b.*,
+          b.id,
+          b.client_id,
+          b.provider_id,
+          b.service_id,
+          b.status,
+          DATE_FORMAT(b.date, '%Y-%m-%d') as date,
+          b.time_slot,
+          b.location,
+          b.notes,
           p.business_name as provider_name,
-          s.name as service_name
+          s.name as service_name,
+          b.created_at,
+          b.updated_at
         FROM bookings b
         JOIN providers p ON b.provider_id = p.id
         JOIN services s ON b.service_id = s.id
-        JOIN clients c ON b.client_id = c.id
-        WHERE c.user_id = ?
-        ORDER BY b.created_at DESC
-      `, [user_id]);
+        WHERE b.client_id = ?
+        ORDER BY b.date DESC, b.time_slot ASC
+      `, [client_id]);
 
       res.json(bookings);
     } catch (error) {
@@ -115,37 +147,114 @@ const bookingController = {
     const db = req.app.locals.db;
     const bookingId = req.params.id;
     const user_id = req.user.id;
-    const { date, time, status, notes } = req.body;
+    const { date, time, notes } = req.body;
 
     try {
       await db.query('START TRANSACTION');
 
       // Verify booking belongs to user
-      const [bookingRows] = await db.query(
-        `SELECT b.* FROM bookings b
-         JOIN clients c ON b.client_id = c.id
-         WHERE b.id = ? AND c.user_id = ?`,
-        [bookingId, user_id]
-      );
+      const [bookingRows] = await db.query(`
+        SELECT b.* FROM bookings b
+        JOIN clients c ON b.client_id = c.id
+        WHERE b.id = ? AND c.user_id = ?
+      `, [bookingId, user_id]);
 
       if (bookingRows.length === 0) {
         await db.query('ROLLBACK');
-        return res.status(404).json({ message: 'Booking not found' });
+        return res.status(404).json({ message: 'Booking not found or unauthorized' });
       }
 
       // Update booking details
       await db.query(
-        `UPDATE bookings SET date = ?, time_slot = ?, status = ?, notes = ? WHERE id = ?`,
-        [date, time, status, notes, bookingId]
+        `UPDATE bookings SET date = ?, time_slot = ?, notes = ? WHERE id = ?`,
+        [date, time, notes, bookingId]
       );
+
+      // Create notification for provider
+      const provider_id = bookingRows[0].provider_id;
+      const [providerUserRow] = await db.query(
+        'SELECT user_id FROM providers WHERE id = ?',
+        [provider_id]
+      );
+
+      if (providerUserRow.length > 0) {
+        await db.query(
+          `INSERT INTO notifications (user_id, type, content)
+           VALUES (?, 'booking_update', ?)`,
+          [
+            providerUserRow[0].user_id,
+            `Booking #${bookingId} has been rescheduled to ${date} at ${time}`
+          ]
+        );
+      }
 
       await db.query('COMMIT');
 
-      res.json({ message: 'Booking updated successfully' });
+      res.json({ 
+        success: true,
+        message: 'Booking updated successfully' 
+      });
     } catch (error) {
       await db.query('ROLLBACK');
       console.error('Error updating booking:', error);
       res.status(500).json({ message: 'Error updating booking' });
+    }
+  },
+
+  cancelBooking: async (req, res) => {
+    const db = req.app.locals.db;
+    const bookingId = req.params.id;
+    const user_id = req.user.id;
+
+    try {
+      await db.query('START TRANSACTION');
+
+      // Verify booking belongs to user
+      const [bookingRows] = await db.query(`
+        SELECT b.* FROM bookings b
+        JOIN clients c ON b.client_id = c.id
+        WHERE b.id = ? AND c.user_id = ?
+      `, [bookingId, user_id]);
+
+      if (bookingRows.length === 0) {
+        await db.query('ROLLBACK');
+        return res.status(404).json({ message: 'Booking not found or unauthorized' });
+      }
+
+      // Update booking status to cancelled
+      await db.query(
+        `UPDATE bookings SET status = 'cancelled' WHERE id = ?`,
+        [bookingId]
+      );
+
+      // Create notification for provider
+      const provider_id = bookingRows[0].provider_id;
+      const [providerUserRow] = await db.query(
+        'SELECT user_id FROM providers WHERE id = ?',
+        [provider_id]
+      );
+
+      if (providerUserRow.length > 0) {
+        await db.query(
+          `INSERT INTO notifications (user_id, type, content)
+           VALUES (?, 'booking_cancelled', ?)`,
+          [
+            providerUserRow[0].user_id,
+            `Booking #${bookingId} has been cancelled by the client`
+          ]
+        );
+      }
+
+      await db.query('COMMIT');
+
+      res.json({ 
+        success: true,
+        message: 'Booking cancelled successfully' 
+      });
+    } catch (error) {
+      await db.query('ROLLBACK');
+      console.error('Error cancelling booking:', error);
+      res.status(500).json({ message: 'Error cancelling booking' });
     }
   },
 
@@ -158,16 +267,28 @@ const bookingController = {
       await db.query('START TRANSACTION');
 
       // Verify booking belongs to user
-      const [bookingRows] = await db.query(
-        `SELECT b.* FROM bookings b
-         JOIN clients c ON b.client_id = c.id
-         WHERE b.id = ? AND c.user_id = ?`,
-        [bookingId, user_id]
-      );
+      const [bookingRows] = await db.query(`
+        SELECT b.* FROM bookings b
+        JOIN clients c ON b.client_id = c.id
+        WHERE b.id = ? AND c.user_id = ?
+      `, [bookingId, user_id]);
 
       if (bookingRows.length === 0) {
         await db.query('ROLLBACK');
-        return res.status(404).json({ message: 'Booking not found' });
+        return res.status(404).json({ message: 'Booking not found or unauthorized' });
+      }
+
+      // Check if there are any dependencies (like payments, reviews)
+      const [paymentRows] = await db.query(
+        'SELECT id FROM payments WHERE booking_id = ?',
+        [bookingId]
+      );
+
+      if (paymentRows.length > 0) {
+        await db.query('ROLLBACK');
+        return res.status(400).json({ 
+          message: 'Cannot delete booking with associated payments. Please cancel it instead.' 
+        });
       }
 
       // Delete booking
@@ -178,7 +299,10 @@ const bookingController = {
 
       await db.query('COMMIT');
 
-      res.json({ message: 'Booking deleted successfully' });
+      res.json({ 
+        success: true,
+        message: 'Booking deleted successfully' 
+      });
     } catch (error) {
       await db.query('ROLLBACK');
       console.error('Error deleting booking:', error);
@@ -188,17 +312,15 @@ const bookingController = {
 
   getProviderAppointments: async (req, res) => {
     const db = req.app.locals.db;
-    const userId = req.params.providerId; // This is actually the user_id
+    const provider_user_id = req.user.id;
 
     try {
-      console.log('Getting appointments for user_id:', userId);
-
       // First get the provider_id from the providers table using user_id
       const [provider] = await db.query(`
-        SELECT p.id as provider_id 
-        FROM providers p 
-        WHERE p.user_id = ?
-      `, [userId]);
+        SELECT id as provider_id 
+        FROM providers 
+        WHERE user_id = ?
+      `, [provider_user_id]);
 
       if (!provider.length) {
         return res.status(404).json({
@@ -208,7 +330,6 @@ const bookingController = {
       }
 
       const providerId = provider[0].provider_id;
-      console.log('Found provider_id:', providerId);
 
       // Now get the appointments using provider_id
       const [appointments] = await db.query(`
@@ -221,7 +342,8 @@ const bookingController = {
           b.location,
           b.status,
           ps.price,
-          c.user_id as client_user_id
+          c.user_id as client_user_id,
+          b.notes
         FROM bookings b
         JOIN clients c ON b.client_id = c.id
         JOIN users u ON c.user_id = u.id
@@ -230,8 +352,6 @@ const bookingController = {
         WHERE b.provider_id = ?
         ORDER BY b.date DESC, b.time_slot ASC
       `, [providerId]);
-
-      console.log(`Found ${appointments.length} appointments for provider`);
 
       res.json({
         success: true,
@@ -251,16 +371,32 @@ const bookingController = {
     const db = req.app.locals.db;
     const { id } = req.params;
     const { status } = req.body;
-    const providerId = req.user.id;
+    const user_id = req.user.id;
 
     try {
+      await db.query('START TRANSACTION');
+
+      // Get provider_id for this user
+      const [providerRows] = await db.query(
+        'SELECT id FROM providers WHERE user_id = ?',
+        [user_id]
+      );
+
+      if (providerRows.length === 0) {
+        await db.query('ROLLBACK');
+        return res.status(404).json({ message: 'Provider profile not found' });
+      }
+
+      const provider_id = providerRows[0].id;
+
       // Verify the appointment belongs to this provider
       const [booking] = await db.query(
         'SELECT * FROM bookings WHERE id = ? AND provider_id = ?',
-        [id, providerId]
+        [id, provider_id]
       );
 
       if (!booking.length) {
+        await db.query('ROLLBACK');
         return res.status(404).json({ message: 'Appointment not found' });
       }
 
@@ -269,18 +405,32 @@ const bookingController = {
         [status, id]
       );
 
-      // Create notification for client
-      await db.query(
-        `INSERT INTO notifications (user_id, type, content)
-         VALUES (?, 'booking_update', ?)`,
-        [
-          booking[0].client_id,
-          `Your booking has been ${status}`
-        ]
+      // Get client's user_id
+      const [clientRows] = await db.query(
+        'SELECT user_id FROM clients WHERE id = ?',
+        [booking[0].client_id]
       );
 
-      res.json({ message: 'Appointment status updated successfully' });
+      if (clientRows.length > 0) {
+        // Create notification for client
+        await db.query(
+          `INSERT INTO notifications (user_id, type, content)
+           VALUES (?, 'booking_update', ?)`,
+          [
+            clientRows[0].user_id,
+            `Your booking has been ${status}`
+          ]
+        );
+      }
+
+      await db.query('COMMIT');
+
+      res.json({ 
+        success: true,
+        message: 'Appointment status updated successfully' 
+      });
     } catch (error) {
+      await db.query('ROLLBACK');
       console.error('Error updating appointment status:', error);
       res.status(500).json({ message: 'Error updating appointment status' });
     }
@@ -290,52 +440,151 @@ const bookingController = {
     const db = req.app.locals.db;
     const { id } = req.params;
     const { date, time } = req.body;
-    const userId = req.user.id;
+    const user_id = req.user.id;
 
     try {
-      const [booking] = await db.query(
-        'SELECT * FROM bookings WHERE id = ? AND (client_id = ? OR provider_id = ?)',
-        [id, userId, userId]
+      await db.query('START TRANSACTION');
+
+      // Check if the user is a client or provider
+      const [clientRows] = await db.query(
+        'SELECT id FROM clients WHERE user_id = ?',
+        [user_id]
+      );
+      
+      const [providerRows] = await db.query(
+        'SELECT id FROM providers WHERE user_id = ?',
+        [user_id]
       );
 
-      if (!booking.length) {
-        return res.status(404).json({ message: 'Booking not found' });
+      let client_id = null;
+      let provider_id = null;
+      let userType = '';
+
+      if (clientRows.length > 0) {
+        client_id = clientRows[0].id;
+        userType = 'client';
+      } else if (providerRows.length > 0) {
+        provider_id = providerRows[0].id;
+        userType = 'provider';
+      } else {
+        await db.query('ROLLBACK');
+        return res.status(404).json({ message: 'User profile not found' });
       }
 
+      // Verify booking belongs to user (either as client or provider)
+      let bookingQuery = '';
+      let params = [];
+      
+      if (userType === 'client') {
+        bookingQuery = 'SELECT * FROM bookings WHERE id = ? AND client_id = ?';
+        params = [id, client_id];
+      } else {
+        bookingQuery = 'SELECT * FROM bookings WHERE id = ? AND provider_id = ?';
+        params = [id, provider_id];
+      }
+
+      const [booking] = await db.query(bookingQuery, params);
+
+      if (booking.length === 0) {
+        await db.query('ROLLBACK');
+        return res.status(404).json({ message: 'Booking not found or unauthorized' });
+      }
+
+      // Update booking schedule
       await db.query(
         'UPDATE bookings SET date = ?, time_slot = ? WHERE id = ?',
         [date, time, id]
       );
 
-      // Notify other party about reschedule
-      const notifyUserId = userId === booking[0].client_id 
-        ? booking[0].provider_id 
-        : booking[0].client_id;
+      // Determine who to notify
+      let notifyUserId = null;
+      
+      if (userType === 'client') {
+        // Get provider's user_id
+        const [providerUserRows] = await db.query(
+          'SELECT user_id FROM providers WHERE id = ?',
+          [booking[0].provider_id]
+        );
+        if (providerUserRows.length > 0) {
+          notifyUserId = providerUserRows[0].user_id;
+        }
+      } else {
+        // Get client's user_id
+        const [clientUserRows] = await db.query(
+          'SELECT user_id FROM clients WHERE id = ?',
+          [booking[0].client_id]
+        );
+        if (clientUserRows.length > 0) {
+          notifyUserId = clientUserRows[0].user_id;
+        }
+      }
 
-      await db.query(
-        `INSERT INTO notifications (user_id, type, content)
-         VALUES (?, 'booking_rescheduled', ?)`,
-        [
-          notifyUserId,
-          `Booking #${id} has been rescheduled to ${date} at ${time}`
-        ]
-      );
+      // Create notification for the other party
+      if (notifyUserId) {
+        await db.query(
+          `INSERT INTO notifications (user_id, type, content)
+           VALUES (?, 'booking_rescheduled', ?)`,
+          [
+            notifyUserId,
+            `Booking #${id} has been rescheduled to ${date} at ${time}`
+          ]
+        );
+      }
 
-      res.json({ message: 'Booking rescheduled successfully' });
+      await db.query('COMMIT');
+
+      res.json({ 
+        success: true,
+        message: 'Booking rescheduled successfully' 
+      });
     } catch (error) {
+      await db.query('ROLLBACK');
       console.error('Error rescheduling booking:', error);
       res.status(500).json({ message: 'Error rescheduling booking' });
     }
   },
 
   getAllBookings: async (req, res) => {
+    const db = req.app.locals.db;
+    
     try {
-      const bookings = await Booking.findAll({
-        include: ['user', 'provider']
-      });
+      const user_id = req.user.id;
+      
+      // Check if user is admin
+      const [userRows] = await db.query(
+        'SELECT user_type FROM users WHERE id = ?',
+        [user_id]
+      );
+      
+      if (userRows.length === 0 || userRows[0].user_type !== 'admin') {
+        return res.status(403).json({ message: 'Unauthorized access' });
+      }
+      
+      // Get all bookings with client, provider and service details
+      const [bookings] = await db.query(`
+        SELECT 
+          b.id,
+          b.status,
+          DATE_FORMAT(b.date, '%Y-%m-%d') as date,
+          b.time_slot,
+          b.location,
+          b.notes,
+          CONCAT(cu.first_name, ' ', cu.last_name) as client_name,
+          p.business_name as provider_name,
+          s.name as service_name,
+          b.created_at,
+          b.updated_at
+        FROM bookings b
+        JOIN clients c ON b.client_id = c.id
+        JOIN users cu ON c.user_id = cu.id
+        JOIN providers p ON b.provider_id = p.id
+        JOIN services s ON b.service_id = s.id
+        ORDER BY b.date DESC, b.time_slot ASC
+      `);
+
       res.json(bookings);
     } catch (error) {
-      console.error('Error fetching bookings:', error);
+      console.error('Error fetching all bookings:', error);
       res.status(500).json({ message: 'Error fetching bookings' });
     }
   }

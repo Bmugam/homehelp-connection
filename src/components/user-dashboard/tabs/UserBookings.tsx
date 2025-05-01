@@ -51,11 +51,72 @@ const UserBookings = () => {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
 
+  // For payment modal
+  const [paymentBookingId, setPaymentBookingId] = useState(null);
+  const [paymentPhoneNumber, setPaymentPhoneNumber] = useState('');
+  const [paymentAmount, setPaymentAmount] = useState(0);
+  const [paymentError, setPaymentError] = useState('');
+  const [paymentLoading, setPaymentLoading] = useState(false);
+
   useEffect(() => {
     if (user) {
       fetchBookings();
     }
   }, [user]);
+
+  const openPaymentModal = (bookingId) => {
+    setPaymentBookingId(bookingId);
+    // Optionally set default amount based on booking or service price
+    const booking = bookings.find(b => b.id === bookingId);
+    if (booking) {
+      // Assuming service price is available in booking.provider_details or similar
+      setPaymentAmount(1000); // Placeholder amount, replace with actual price if available
+    }
+    setPaymentPhoneNumber('');
+    setPaymentError('');
+  };
+
+  const closePaymentModal = () => {
+    setPaymentBookingId(null);
+    setPaymentPhoneNumber('');
+    setPaymentAmount(0);
+    setPaymentError('');
+  };
+
+  const handlePaymentSubmit = async () => {
+    console.log('Starting payment submission...');
+    if (!paymentPhoneNumber.match(/^2547\d{8}$/)) {
+      console.log('Invalid phone number format:', paymentPhoneNumber);
+      setPaymentError('Please enter a valid phone number in format 2547XXXXXXXX');
+      return;
+    }
+    if (paymentAmount <= 0) {
+      console.log('Invalid payment amount:', paymentAmount);
+      setPaymentError('Please enter a valid payment amount');
+      return;
+    }
+    setPaymentLoading(true);
+    setPaymentError('');
+    try {
+      console.log('Initiating payment with data:', { phoneNumber: paymentPhoneNumber, amount: paymentAmount, bookingId: paymentBookingId });
+      await apiService.mpesa.initiatePayment({
+        phoneNumber: paymentPhoneNumber,
+        amount: paymentAmount,
+        bookingId: paymentBookingId,
+      });
+      console.log('Payment initiation successful');
+      // After successful initiation, close modal and refresh bookings to update payment status
+      closePaymentModal();
+      fetchBookings();
+      alert('Payment initiated. Please complete the payment on your phone.');
+    } catch (err) {
+      console.error('Payment initiation failed:', err);
+      setPaymentError('Failed to initiate payment. Please try again.');
+    } finally {
+      setPaymentLoading(false);
+      console.log('Payment submission process ended');
+    }
+  };
 
   const fetchBookings = async () => {
     setLoading(true);
@@ -439,14 +500,26 @@ const UserBookings = () => {
                       )}
                       
                       {booking.status === 'completed' && (
-                        <Button 
-                          size="sm" 
-                          onClick={() => openReviewModal(booking.id)}
-                          className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700"
-                        >
-                          <MessageCircle className="h-3 w-3" />
-                          <span>Leave Review</span>
-                        </Button>
+                        <>
+                          {!booking.is_paid ? (
+                            <Button
+                              size="sm"
+                              onClick={() => openPaymentModal(booking.id)}
+                              className="flex items-center gap-1 bg-green-600 hover:bg-green-700"
+                            >
+                              <span>Pay Now</span>
+                            </Button>
+                          ) : (
+                            <Button 
+                              size="sm" 
+                              onClick={() => openReviewModal(booking.id)}
+                              className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700"
+                            >
+                              <MessageCircle className="h-3 w-3" />
+                              <span>Leave Review</span>
+                            </Button>
+                          )}
+                        </>
                       )}
                       
                       {booking.status === 'cancelled' && (
@@ -588,6 +661,42 @@ const UserBookings = () => {
             <div className="flex justify-end space-x-2">
               <Button variant="outline" onClick={closeReviewModal}>Cancel</Button>
               <Button onClick={handleReviewSubmit} disabled={loading}>Submit Review</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Modal */}
+      {paymentBookingId !== null && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-96 shadow-xl">
+            <h3 className="text-lg font-semibold mb-4">Make Payment</h3>
+            <label className="block mb-4">
+              <span className="text-gray-700">Phone Number (254XXXXXXXXX):</span>
+              <input
+                type="text"
+                value={paymentPhoneNumber}
+                onChange={(e) => setPaymentPhoneNumber(e.target.value)}
+                className="w-full mt-1 border border-gray-300 rounded px-3 py-2"
+                placeholder="2547XXXXXXXX"
+              />
+            </label>
+            <label className="block mb-4">
+              <span className="text-gray-700">Amount:</span>
+              <input
+                type="number"
+                value={paymentAmount}
+                onChange={(e) => setPaymentAmount(Number(e.target.value))}
+                className="w-full mt-1 border border-gray-300 rounded px-3 py-2"
+                placeholder="Amount"
+              />
+            </label>
+            {paymentError && (
+              <div className="text-red-600 mb-4">{paymentError}</div>
+            )}
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={closePaymentModal}>Cancel</Button>
+              <Button onClick={handlePaymentSubmit} disabled={loading}>Pay Now</Button>
             </div>
           </div>
         </div>

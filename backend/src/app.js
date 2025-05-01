@@ -14,6 +14,7 @@ const authRoutes = require('./routes/authRoutes');
 const serviceRoutes = require('./routes/serviceRoutes');
 const clientRoutes = require('./routes/clientRoutes');
 const mpesaRoutes = require('./routes/mpesaRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 
 // Initialize Express app
@@ -90,7 +91,8 @@ async function initializeApp() {
   app.use('/api/bookings', bookingRoutes);
   app.use('/api/admin', adminRoutes);
   app.use('/api/clients', clientRoutes);
-  app.use('/api/mpesa', mpesaRoutes);
+app.use('/api/mpesa', mpesaRoutes);
+app.use('/api/payments', paymentRoutes);
   app.use('/api/reviews', reviewRoutes);
 
   // Add catch-all route for debugging

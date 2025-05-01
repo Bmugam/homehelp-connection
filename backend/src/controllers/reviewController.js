@@ -34,6 +34,16 @@ const reviewController = {
         return res.status(400).json({ message: 'Can only review completed bookings' });
       }
 
+      // Check if booking has successful payment
+      const [paymentRows] = await db.query(
+        `SELECT id FROM payments WHERE booking_id = ? AND status = 'paid'`,
+        [bookingId]
+      );
+
+      if (paymentRows.length === 0) {
+        return res.status(400).json({ message: 'Payment required before reviewing this booking' });
+      }
+
       const provider_id = bookingRows[0].provider_id;
 
       // Check if review already exists for this booking

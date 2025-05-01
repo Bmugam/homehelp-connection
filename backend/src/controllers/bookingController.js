@@ -113,7 +113,7 @@ const bookingController = {
 
       const client_id = clientRows[0].id;
 
-      // Get client's bookings with provider and service details
+      // Get client's bookings with provider and service details and payment status
       const [bookings] = await db.query(`
         SELECT 
           b.id,
@@ -128,7 +128,13 @@ const bookingController = {
           p.business_name as provider_name,
           s.name as service_name,
           b.created_at,
-          b.updated_at
+          b.updated_at,
+          CASE 
+            WHEN EXISTS (
+              SELECT 1 FROM payments pay 
+              WHERE pay.booking_id = b.id AND pay.status = 'paid'
+            ) THEN TRUE ELSE FALSE 
+          END AS is_paid
         FROM bookings b
         JOIN providers p ON b.provider_id = p.id
         JOIN services s ON b.service_id = s.id

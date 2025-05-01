@@ -176,6 +176,8 @@ interface Service extends ServiceCreate {
   updatedAt: string;
 }
 
+
+
 // API service methods
 export const apiService = {
   // Auth endpoints
@@ -294,7 +296,7 @@ export const apiService = {
     
     toggleServiceStatus: (providerId: string | number, serviceId: string | number, active: boolean) => 
       api.patch<Service>(`/api/providers/${providerId}/services/${serviceId}/status`, { active }),
-
+  
     // Upload provider profile image
     uploadProfileImage: (providerId: string | number, formData: FormData) =>
       api.put(`/api/providers/${providerId}/upload-image`, formData, {
@@ -336,6 +338,12 @@ export const apiService = {
       api.post(`/api/clients/${clientId}/favorite`),
     updateStatus: (clientId: number, status: 'active' | 'inactive') => 
       api.put(`/api/clients/${clientId}/status`, { status }),
+  },
+
+  // Mpesa payment endpoints
+  mpesa: {
+    initiatePayment: (data: { phoneNumber: string; amount: number; bookingId: string | number }) =>
+      api.post('/api/mpesa/pay', data),
   },
 };
 

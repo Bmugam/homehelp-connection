@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -5,17 +6,23 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Star, Phone, Mail, Calendar, ArrowLeft, ThumbsUp, Clock, Award, CheckCircle, User, Briefcase } from "lucide-react";
 
-import { getProviderById } from "../services/providerService";
+import { getProviderById, Service, Review } from "../services/providerService";
 import { getImageUrl } from "../utils/imageUtils";
-import type { Provider, Review } from "../types/provider";
+import type { Provider as ProviderType } from "../types/provider";
 import { ProviderListModal } from "../components/ProviderListModal";
-import type { Service } from "../pages/Services";
 
 interface ProviderDetailService extends Service {
-  id: number;
-  name: string;
-  price?: number;
+  service_id: number;
+  price?: number | string;
   description?: string;
+}
+
+interface Provider extends ProviderType {
+  experience?: string;
+  verification_status: string;
+  services: Service[];
+  reviewList?: Review[];
+  verified: boolean;
 }
 
 const ProviderDetail = () => {

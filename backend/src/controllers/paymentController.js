@@ -4,6 +4,8 @@ const paymentController = {
     const { bookingId, amount, paymentMethod, status } = req.body;
     const user_id = req.user.id;
 
+    console.log('createPayment called with:', { bookingId, amount, paymentMethod, status, user_id });
+
     try {
       // Verify booking belongs to client
       const [bookingRows] = await db.query(
@@ -14,6 +16,7 @@ const paymentController = {
       );
 
       if (bookingRows.length === 0) {
+        console.log('createPayment booking not found or unauthorized:', { bookingId, user_id });
         return res.status(404).json({ message: 'Booking not found or unauthorized' });
       }
 
@@ -23,6 +26,8 @@ const paymentController = {
          VALUES (?, ?, ?, ?, NOW())`,
         [bookingId, amount, paymentMethod, status]
       );
+
+      console.log('createPayment success, inserted paymentId:', result.insertId);
 
       res.status(201).json({ message: 'Payment created successfully', paymentId: result.insertId });
     } catch (error) {
@@ -35,10 +40,13 @@ const paymentController = {
     const db = req.app.locals.db;
     const user_id = req.user.id;
 
+    console.log('getPaymentsByClient called with user_id:', user_id);
+
     try {
       // Get client id
       const [clientRows] = await db.query('SELECT id FROM clients WHERE user_id = ?', [user_id]);
       if (clientRows.length === 0) {
+        console.log('getPaymentsByClient client not found for user_id:', user_id);
         return res.status(404).json({ message: 'Client not found' });
       }
       const client_id = clientRows[0].id;
@@ -54,6 +62,8 @@ const paymentController = {
         [client_id]
       );
 
+      console.log('getPaymentsByClient success, payments count:', payments.length);
+
       res.json(payments);
     } catch (error) {
       console.error('Error fetching payments:', error);
@@ -67,6 +77,8 @@ const paymentController = {
     const user_id = req.user.id;
     const { amount, paymentMethod, status } = req.body;
 
+    console.log('updatePayment called with:', { paymentId, amount, paymentMethod, status, user_id });
+
     try {
       // Verify payment belongs to client
       const [paymentRows] = await db.query(
@@ -78,6 +90,7 @@ const paymentController = {
       );
 
       if (paymentRows.length === 0) {
+        console.log('updatePayment payment not found or unauthorized:', { paymentId, user_id });
         return res.status(404).json({ message: 'Payment not found or unauthorized' });
       }
 
@@ -86,6 +99,8 @@ const paymentController = {
         `UPDATE payments SET amount = ?, payment_method = ?, status = ? WHERE id = ?`,
         [amount, paymentMethod, status, paymentId]
       );
+
+      console.log('updatePayment success for paymentId:', paymentId);
 
       res.json({ message: 'Payment updated successfully' });
     } catch (error) {
@@ -99,6 +114,8 @@ const paymentController = {
     const paymentId = req.params.id;
     const user_id = req.user.id;
 
+    console.log('deletePayment called with:', { paymentId, user_id });
+
     try {
       // Verify payment belongs to client
       const [paymentRows] = await db.query(
@@ -110,11 +127,14 @@ const paymentController = {
       );
 
       if (paymentRows.length === 0) {
+        console.log('deletePayment payment not found or unauthorized:', { paymentId, user_id });
         return res.status(404).json({ message: 'Payment not found or unauthorized' });
       }
 
       // Delete payment
       await db.query(`DELETE FROM payments WHERE id = ?`, [paymentId]);
+
+      console.log('deletePayment success for paymentId:', paymentId);
 
       res.json({ message: 'Payment deleted successfully' });
     } catch (error) {

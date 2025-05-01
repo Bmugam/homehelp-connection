@@ -11,8 +11,8 @@ import { Select } from '../../ui/select';
 
 interface ApiBookingResponse {
   id: string;
-  service?: { name: string };
-  provider?: { name: string };
+  service_name?: string;
+  provider_name?: string;
   date: string;
   time: string;
   status: string;
@@ -69,8 +69,8 @@ const DashboardOverview = ({
         // Transform API response to match BookingType
         const transformBooking = (booking: ApiBookingResponse): BookingType => ({
           id: parseInt(booking.id),
-          service: booking.service?.name ?? 'Unknown Service',
-          provider: booking.provider?.name ?? 'Unknown Provider',
+          service: booking.service_name ?? 'Unknown Service',
+          provider: booking.provider_name ?? 'Unknown Provider',
           date: booking.date,
           time: booking.time,
           status: booking.status as 'pending' | 'confirmed' | 'completed' | 'cancelled',

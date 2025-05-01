@@ -22,6 +22,22 @@ export interface ClientData {
   updated_at: string;
 }
 
+export interface ReviewData {
+  id: number;
+  booking_id: number;
+  rating: number;
+  comment: string;
+  created_at: string;
+  service_name?: string;
+  provider_name?: string;
+}
+
+const getAuthHeaders = (token?: string) => {
+  // Get token from localStorage if not provided
+  const authToken = token || localStorage.getItem('token');
+  return authToken ? { Authorization: `Bearer ${authToken}` } : undefined;
+};
+
 const userService = {
   getUser: async (userId: number, token?: string) => {
     const response = await axios.get(`${API_BASE_URL}/api/clients/${userId}`, {
@@ -76,6 +92,61 @@ const userService = {
       },
     });
     return response.data;
+  },
+
+  // Review API calls
+  createReview: async (reviewData: { bookingId: number; rating: number; comment: string }, token?: string) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/reviews`, reviewData, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(token)
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Review creation error:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  getReviewsByClient: async (token?: string) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/reviews`, {
+        headers: getAuthHeaders(token)
+      });
+      return response.data as ReviewData[];
+    } catch (error) {
+      console.error('Get reviews error:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  updateReview: async (reviewId: number, reviewData: { rating: number; comment: string }, token?: string) => {
+    try {
+      const response = await axios.put(`${API_BASE_URL}/api/reviews/${reviewId}`, reviewData, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(token)
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Update review error:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  deleteReview: async (reviewId: number, token?: string) => {
+    try {
+      const response = await axios.delete(`${API_BASE_URL}/api/reviews/${reviewId}`, {
+        headers: getAuthHeaders(token)
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Delete review error:', error.response?.data || error.message);
+      throw error;
+    }
   },
 };
 

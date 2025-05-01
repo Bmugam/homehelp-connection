@@ -193,13 +193,13 @@ export const apiService = {
   // Review endpoints
   reviews: {
     create: (data: { bookingId: string; rating: number; comment: string }) => 
-      api.post('/reviews', data),
+      api.post('/api/reviews', data),
     getAll: () => 
-      api.get('/reviews'),
+      api.get('/api/reviews'),
     update: (id: string, data: { rating: number; comment: string }) => 
-      api.put(`/reviews/${id}`, data),
+      api.put(`/api/reviews/${id}`, data),
     delete: (id: string) => 
-      api.delete(`/reviews/${id}`),
+      api.delete(`/api/reviews/${id}`),
   },
 
   // Payment endpoints

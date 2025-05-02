@@ -52,6 +52,14 @@ class MpesaService {
                 `${mpesaConfig.shortCode}${mpesaConfig.passKey}${timestamp}`
             ).toString('base64');
 
+            // Add detailed callback URL debugging
+            this.debug('Verifying callback URL configuration', {
+                configuredUrl: mpesaConfig.callbackUrl,
+                isHttps: mpesaConfig.callbackUrl.startsWith('https://'),
+                urlLength: mpesaConfig.callbackUrl.length,
+                environment: mpesaConfig.environment
+            });
+
             this.debug('Prepared STK push parameters', {
                 timestamp,
                 shortCode: mpesaConfig.shortCode,

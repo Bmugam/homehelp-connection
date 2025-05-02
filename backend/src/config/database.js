@@ -213,6 +213,10 @@ async function createTables() {
         status ENUM('pending', 'completed', 'refunded') DEFAULT 'pending',
         payment_method VARCHAR(50) NOT NULL,
         transaction_id VARCHAR(255),
+        merchant_request_id VARCHAR(255),
+        mpesa_receipt VARCHAR(255),
+        failure_reason TEXT,
+        transaction_date VARCHAR(50),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
@@ -243,6 +247,46 @@ async function createTables() {
     return true;
   } catch (err) {
     console.error('Error creating tables:', err);
+    throw err;
+  }
+}
+
+// Add new async function before setupDatabase()
+async function addMissingColumns() {
+  try {
+    const connection = await mysql.createConnection({
+      ...dbConfig,
+      database: config.DB.DATABASE
+    });
+
+    // Check and add new payment columns
+    const [columns] = await connection.query('SHOW COLUMNS FROM payments');
+    const existingColumns = columns.map(col => col.Field);
+    
+    if (!existingColumns.includes('merchant_request_id')) {
+      await connection.query('ALTER TABLE payments ADD COLUMN merchant_request_id VARCHAR(255) AFTER transaction_id');
+      console.log('Added merchant_request_id column');
+    }
+    
+    if (!existingColumns.includes('mpesa_receipt')) {
+      await connection.query('ALTER TABLE payments ADD COLUMN mpesa_receipt VARCHAR(255) AFTER merchant_request_id');
+      console.log('Added mpesa_receipt column');
+    }
+    
+    if (!existingColumns.includes('failure_reason')) {
+      await connection.query('ALTER TABLE payments ADD COLUMN failure_reason TEXT AFTER mpesa_receipt');
+      console.log('Added failure_reason column');
+    }
+    
+    if (!existingColumns.includes('transaction_date')) {
+      await connection.query('ALTER TABLE payments ADD COLUMN transaction_date VARCHAR(50) AFTER failure_reason');
+      console.log('Added transaction_date column');
+    }
+
+    await connection.end();
+    return true;
+  } catch (err) {
+    console.error('Error adding missing columns:', err);
     throw err;
   }
 }
@@ -288,6 +332,7 @@ async function setupDatabase() {
   try {
     await createDatabase();
     await createTables();
+    await addMissingColumns(); // Add this line
     // await insertSeedData();
     console.log('Database setup completed successfully');
     return true;

@@ -3,40 +3,19 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
-import { useAuth } from '@/contexts/AuthContext';
+import {useAuth} from '@/contexts/AuthContext';
 import { Textarea } from '@/components/ui/textarea';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService } from '@/services/api';
 import { toast } from 'sonner';
 import { Provider } from '@/types';
-import { Clock, MapPin, ClipboardList, Phone } from 'lucide-react';
-import axios from 'axios';
+import { Clock, MapPin, ClipboardList } from 'lucide-react';
 
 interface BookingModalProps {
   isOpen: boolean;
   onClose: () => void;
   provider: Provider;
   selectedServiceId?: number;
-}
-
-interface BookingCreate {
-  providerId: string;
-  serviceId: string;
-  date: string;
-  time: string;
-  location: string;
-  notes?: string;
-}
-
-interface BookingResponse {
-  id: string;  // Changed to string to match API response
-  provider_id: number;
-  service_id: number;
-  date: string;
-  time_slot: string;
-  location: string;
-  notes?: string;
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
 }
 
 export const BookingModal = ({ isOpen, onClose, provider, selectedServiceId }: BookingModalProps) => {
@@ -46,10 +25,9 @@ export const BookingModal = ({ isOpen, onClose, provider, selectedServiceId }: B
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
   const [step, setStep] = useState(1);
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [paymentLoading, setPaymentLoading] = useState(false);
 
   const queryClient = useQueryClient();
+
   const { isAuthenticated } = useAuth();
 
   useEffect(() => {
@@ -59,60 +37,24 @@ export const BookingModal = ({ isOpen, onClose, provider, selectedServiceId }: B
   }, [selectedServiceId]);
 
   const bookingMutation = useMutation({
-    mutationFn: async (data: BookingCreate) => {
-      const response = await apiService.bookings.create(data);
-      return response.data;
-    },
-    onSuccess: (data: BookingResponse) => {
-      handlePayment(Number(data.id)); // Convert string id to number
+    mutationFn: (data: {
+      providerId: string;
+      serviceId: string;
+      date: string;
+      time: string;
+      location: string;
+      notes?: string;
+    }) => Promise.resolve(apiService.bookings.create(data)),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      toast.success('Booking created successfully');
+      onClose();
     },
     onError: (error) => {
       console.error('Booking creation error:', error);
       toast.error('Failed to create booking');
     }
   });
-
-  const paymentMutation = useMutation({
-    mutationFn: async (data: { phoneNumber: string; amount: number; bookingId: number }) => {
-      const response = await apiService.mpesa.initiatePayment(data);
-      return response.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['bookings'] });
-      toast.success('Payment initiated. Please check your phone to complete the transaction.');
-      onClose();
-    },
-    onError: (error) => {
-      console.error('Payment error:', error);
-      toast.error('Failed to initiate payment. Please try again.');
-    },
-    onSettled: () => {
-      setPaymentLoading(false);
-    }
-  });
-
-  const handlePayment = async (bookingId: number) => {
-    if (!phoneNumber.match(/^2547\d{8}$/)) {
-      toast.error('Please enter a valid phone number in format 2547XXXXXXXX');
-      return;
-    }
-
-    const selectedServiceDetails = provider.services?.find(
-      service => service.id === selectedService
-    );
-
-    if (!selectedServiceDetails?.price) {
-      toast.error('Service price not found');
-      return;
-    }
-
-    setPaymentLoading(true);
-    paymentMutation.mutate({
-      phoneNumber,
-      amount: selectedServiceDetails.price,
-      bookingId
-    });
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,7 +69,7 @@ export const BookingModal = ({ isOpen, onClose, provider, selectedServiceId }: B
       return;
     }
 
-    if (!selectedDate || !selectedService || !timeSlot || !location || !phoneNumber) {
+    if (!selectedDate || !selectedService || !timeSlot || !location) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -164,10 +106,6 @@ export const BookingModal = ({ isOpen, onClose, provider, selectedServiceId }: B
       toast.error('Please select a time');
       return;
     }
-    if (step === 4 && !location) {
-      toast.error('Please enter your location');
-      return;
-    }
     setStep(step + 1);
   };
 
@@ -182,7 +120,6 @@ export const BookingModal = ({ isOpen, onClose, provider, selectedServiceId }: B
     setTimeSlot('');
     setLocation('');
     setNotes('');
-    setPhoneNumber('');
   };
 
   const handleClose = () => {
@@ -205,13 +142,12 @@ export const BookingModal = ({ isOpen, onClose, provider, selectedServiceId }: B
             {step === 1 && "Select a date for your appointment"}
             {step === 2 && "Choose the service you need"}
             {step === 3 && "Pick a convenient time"}
-            {step === 4 && "Enter your location"}
-            {step === 5 && "Enter payment details"}
+            {step === 4 && "Complete your booking details"}
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex justify-between items-center mb-4">
-          {[1, 2, 3, 4, 5].map((i) => (
+          {[1, 2, 3, 4].map((i) => (
             <div key={i} className="flex flex-col items-center">
               <div 
                 className={`w-8 h-8 rounded-full flex items-center justify-center 
@@ -225,7 +161,6 @@ export const BookingModal = ({ isOpen, onClose, provider, selectedServiceId }: B
                 {i === 2 && 'Service'}
                 {i === 3 && 'Time'}
                 {i === 4 && 'Details'}
-                {i === 5 && 'Payment'}
               </div>
             </div>
           ))}
@@ -301,29 +236,6 @@ export const BookingModal = ({ isOpen, onClose, provider, selectedServiceId }: B
 
           {step === 4 && (
             <div className="space-y-4">
-              <div className="flex items-center">
-                <MapPin size={16} className="mr-2 text-gray-500" />
-                <Input
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder="Enter your location"
-                />
-              </div>
-              
-              <div className="flex items-start">
-                <ClipboardList size={16} className="mr-2 mt-2 text-gray-500" />
-                <Textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Additional notes or special requests"
-                  className="min-h-24"
-                />
-              </div>
-            </div>
-          )}
-
-          {step === 5 && (
-            <div className="space-y-4">
               <div className="rounded-lg bg-blue-50 p-4 mb-4">
                 <h3 className="font-medium mb-2">Booking Summary</h3>
                 <div className="grid grid-cols-2 gap-2 text-sm">
@@ -343,14 +255,25 @@ export const BookingModal = ({ isOpen, onClose, provider, selectedServiceId }: B
                 </div>
               </div>
 
-              <div className="flex items-center">
-                <Phone size={16} className="mr-2 text-gray-500" />
-                <Input
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  placeholder="M-Pesa phone number (2547XXXXXXXX)"
-                  className="flex-1"
-                />
+              <div className="space-y-3">
+                <div className="flex items-center">
+                  <MapPin size={16} className="mr-2 text-gray-500" />
+                  <Input
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    placeholder="Location"
+                  />
+                </div>
+                
+                <div className="flex items-start">
+                  <ClipboardList size={16} className="mr-2 mt-2 text-gray-500" />
+                  <Textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Additional notes or special requests"
+                    className="min-h-24"
+                  />
+                </div>
               </div>
             </div>
           )}
@@ -366,17 +289,17 @@ export const BookingModal = ({ isOpen, onClose, provider, selectedServiceId }: B
               </Button>
             )}
             
-            {step < 5 ? (
+            {step < 4 ? (
               <Button type="button" onClick={nextStep}>
                 Continue
               </Button>
             ) : (
               <Button 
                 type="submit" 
-                disabled={paymentLoading || !phoneNumber}
+                disabled={bookingMutation.isPending || !location}
                 className="bg-blue-600 hover:bg-blue-700"
               >
-                {paymentLoading ? 'Processing...' : 'Confirm & Pay'}
+                {bookingMutation.isPending ? 'Processing...' : 'Confirm Booking'}
               </Button>
             )}
           </div>

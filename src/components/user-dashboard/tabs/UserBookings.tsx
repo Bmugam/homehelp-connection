@@ -10,6 +10,7 @@ import { Badge } from '../../ui/badge';
 import { Skeleton } from '../../ui/skeleton';
 import { apiService } from '../../../services/api';
 import { useAuth } from '../../../contexts/AuthContext';
+import { formatPhoneNumber, validateSafaricomPhoneNumber } from '../../../utils/phoneUtils';
 
 // Define booking type
 const BookingType = {
@@ -57,6 +58,7 @@ const UserBookings = () => {
   const [paymentAmount, setPaymentAmount] = useState(0);
   const [paymentError, setPaymentError] = useState('');
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [isPhoneNumberValid, setIsPhoneNumberValid] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -74,6 +76,7 @@ const UserBookings = () => {
     }
     setPaymentPhoneNumber('');
     setPaymentError('');
+    setIsPhoneNumberValid(false);
   };
 
   const closePaymentModal = () => {
@@ -85,9 +88,9 @@ const UserBookings = () => {
 
   const handlePaymentSubmit = async () => {
     console.log('Starting payment submission...');
-    if (!paymentPhoneNumber.match(/^2547\d{8}$/)) {
+    if (!validateSafaricomPhoneNumber(paymentPhoneNumber)) {
       console.log('Invalid phone number format:', paymentPhoneNumber);
-      setPaymentError('Please enter a valid phone number in format 2547XXXXXXXX');
+      setPaymentError('Please enter a valid Safaricom phone number in format 2547XXXXXXXX or 2541XXXXXXXX');
       return;
     }
     if (paymentAmount <= 0) {
@@ -673,13 +676,23 @@ const UserBookings = () => {
             <h3 className="text-lg font-semibold mb-4">Make Payment</h3>
             <label className="block mb-4">
               <span className="text-gray-700">Phone Number (254XXXXXXXXX):</span>
-              <input
-                type="text"
-                value={paymentPhoneNumber}
-                onChange={(e) => setPaymentPhoneNumber(e.target.value)}
-                className="w-full mt-1 border border-gray-300 rounded px-3 py-2"
-                placeholder="2547XXXXXXXX"
-              />
+            <input
+              type="text"
+              value={paymentPhoneNumber}
+              onChange={(e) => {
+                const formatted = formatPhoneNumber(e.target.value);
+                setPaymentPhoneNumber(formatted);
+                setIsPhoneNumberValid(validateSafaricomPhoneNumber(formatted));
+              }}
+              className={`w-full mt-1 rounded px-3 py-2 border ${
+                paymentPhoneNumber.length === 0
+                  ? 'border-gray-300'
+                  : isPhoneNumberValid
+                  ? 'border-green-500'
+                  : 'border-red-500'
+              }`}
+              placeholder="e.g. 0712345678, +254712345678, or 254712345678"
+            />
             </label>
             <label className="block mb-4">
               <span className="text-gray-700">Amount:</span>
@@ -694,6 +707,9 @@ const UserBookings = () => {
             {paymentError && (
               <div className="text-red-600 mb-4">{paymentError}</div>
             )}
+            <p className="text-sm text-gray-500 mb-4">
+              Please enter a valid Safaricom phone number starting with 07, +2547, or 2547.
+            </p>
             <div className="flex justify-end space-x-2">
               <Button variant="outline" onClick={closePaymentModal}>Cancel</Button>
               <Button onClick={handlePaymentSubmit} disabled={loading}>Pay Now</Button>

@@ -574,7 +574,7 @@ const Services = () => {
                               <div className="flex items-center justify-between pt-3 border-t">
                                 <div>
                                   <span className="font-bold text-gray-900">
-                                    ${(() => {
+                                    KSH {(() => {
                                       const price = service.providers[0]?.price;
                                       return typeof price === 'number' 
                                         ? price.toFixed(2)

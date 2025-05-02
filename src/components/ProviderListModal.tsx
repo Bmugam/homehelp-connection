@@ -57,7 +57,7 @@ export function ProviderListModal({ isOpen, onClose, providers, serviceName, sel
                     </div>
                     <p className="text-sm text-gray-600 mb-2">{provider.bio}</p>
                     <div className="flex justify-between items-center mt-2">
-                      <span className="font-semibold text-lg">${/* No price field in Provider type */}0.00/hr</span>
+                      <span className="font-semibold text-lg">KSH {/* No price field in Provider type */}0.00/hr</span>
                       <Button onClick={() => onSelectProvider ? onSelectProvider(provider) : openBookingModal(provider)}>
                         Book Now
                       </Button>

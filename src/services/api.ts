@@ -6,7 +6,7 @@ const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
-  },
+  }, 
   // Remove withCredentials if you're not using cookies
   // withCredentials: true
 });
@@ -307,6 +307,10 @@ export const apiService = {
     removeProfileImage: (providerId: string) => {
       return axios.delete(`/api/providers/${providerId}/remove-image`);
     },
+
+    // New method to get payments by provider
+    getPayments: (providerId: string | number) =>
+      api.get(`/api/providers/${providerId}/payments`),
   },
 
   // Bookings endpoints

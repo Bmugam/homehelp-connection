@@ -34,6 +34,7 @@ import ProviderMessages from "./pages/provider/Messages";
 import ProviderClients from "./pages/provider/Clients";
 import ProviderSettings from "./pages/provider/Settings";
 import ProviderPayments from "./pages/provider/Payments";
+import ProviderServices from "./pages/provider/MyServices";
 
 const queryClient = new QueryClient();
 
@@ -98,6 +99,7 @@ const App = () => (
                     <Route path="clients" element={<ProviderClients />} />
                     <Route path="settings" element={<ProviderSettings />} />
                     <Route path="payments" element={<ProviderPayments />} />
+                    <Route path="my-services" element={<ProviderServices />} />
                     </Routes>
                 </ProviderLayout>
               </ProtectedRoute>

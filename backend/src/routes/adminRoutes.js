@@ -3,6 +3,8 @@ const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
 const { authenticateToken, isAdmin } = require('../middleware/auth');
+const upload = require('../config/multerConfig');
+const { processUploadedImage } = require('../middleware/imageHandler');
 
 // Dashboard routes
 router.get('/dashboard/stats', authenticateToken, isAdmin, adminController.getDashboardStats);
@@ -26,8 +28,9 @@ router.delete('/providers/:id', authenticateToken, isAdmin, adminController.dele
 
 // Services routes
 router.get('/services', authenticateToken, isAdmin, adminController.getAllServices);
-router.post('/services', authenticateToken, isAdmin, adminController.createService);
-router.put('/services/:id', authenticateToken, isAdmin, adminController.editService);
+router.post('/services', authenticateToken, isAdmin, upload.single('image'), processUploadedImage, adminController.createService);
+router.put('/services/:id', authenticateToken, isAdmin, upload.single('image'), processUploadedImage, adminController.editService);
+router.put('/provider-services/:providerId/:serviceId', authenticateToken, isAdmin, adminController.updateProviderService);
 router.delete('/services/:id', authenticateToken, isAdmin, adminController.deleteService);
 
 // Bookings routes

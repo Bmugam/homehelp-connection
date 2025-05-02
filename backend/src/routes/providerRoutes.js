@@ -1,5 +1,7 @@
 const express = require('express');
 const router = express.Router();
+const upload = require('../config/multerConfig');
+const { processUploadedImage } = require('../middleware/imageHandler');
 const {
   getAllProviders,
   getProvidersByService,
@@ -9,7 +11,8 @@ const {
   updateProviderService,
   deleteProviderService,
   updateProviderProfile,
-  updateProviderAvailability
+  updateProviderAvailability,
+  updateProviderProfileImage
 } = require('../controllers/providerController');
 
 // Existing routes
@@ -57,9 +60,13 @@ router.get('/:id/services', async (req, res) => {
   }
 });
 
-router.post('/:id/services', async (req, res) => {
+router.post('/:id/services', upload.single('image'), processUploadedImage, async (req, res) => {
   try {
-    const newService = await addProviderService(req.app.locals.db, req.params.id, req.body);
+    const serviceData = req.body;
+    if (req.uploadedImagePath) {
+      serviceData.image = req.uploadedImagePath;
+    }
+    const newService = await addProviderService(req.app.locals.db, req.params.id, serviceData);
     res.status(201).json(newService);
   } catch (error) {
     console.error('Error adding provider service:', error);
@@ -67,9 +74,13 @@ router.post('/:id/services', async (req, res) => {
   }
 });
 
-router.put('/:id/services/:serviceId', async (req, res) => {
+router.put('/:id/services/:serviceId', upload.single('image'), processUploadedImage, async (req, res) => {
   try {
-    const updatedService = await updateProviderService(req.app.locals.db, req.params.id, req.params.serviceId, req.body);
+    const serviceData = req.body;
+    if (req.uploadedImagePath) {
+      serviceData.image = req.uploadedImagePath;
+    }
+    const updatedService = await updateProviderService(req.app.locals.db, req.params.id, req.params.serviceId, serviceData);
     res.json(updatedService);
   } catch (error) {
     console.error('Error updating provider service:', error);
@@ -106,6 +117,20 @@ router.put('/:id/availability', async (req, res) => {
   } catch (error) {
     console.error('Error updating provider availability:', error);
     res.status(500).json({ message: 'Error updating provider availability' });
+  }
+});
+
+// Route to upload provider profile image
+router.put('/:id/upload-image', upload.single('image'), processUploadedImage, async (req, res) => {
+  try {
+    if (!req.uploadedImagePath) {
+      return res.status(400).json({ message: 'No image uploaded' });
+    }
+    const updatedProvider = await updateProviderProfileImage(req.app.locals.db, req.params.id, req.uploadedImagePath);
+    res.json(updatedProvider);
+  } catch (error) {
+    console.error('Error uploading provider image:', error);
+    res.status(500).json({ message: 'Error uploading provider image' });
   }
 });
 

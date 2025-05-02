@@ -37,7 +37,14 @@ export const BookingModal = ({ isOpen, onClose, provider, selectedServiceId }: B
   }, [selectedServiceId]);
 
   const bookingMutation = useMutation({
-    mutationFn: apiService.bookings.create,
+    mutationFn: (data: {
+      providerId: string;
+      serviceId: string;
+      date: string;
+      time: string;
+      location: string;
+      notes?: string;
+    }) => Promise.resolve(apiService.bookings.create(data)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
       toast.success('Booking created successfully');

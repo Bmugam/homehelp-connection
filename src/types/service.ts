@@ -1,55 +1,55 @@
 export interface Provider {
-  provider_id: string;
+  provider_id: number;
   business_name: string;
-  provider_name: string;
-  location: string;
-  price: number;
-  description: string;
-  availability: string;
-  verification_status: string;
-  average_rating: number;
-  review_count: number;
+  provider_name?: string;
+  provider_image?: string;
+  location?: string;
+  price?: number;
+  description?: string;
+  availability?: unknown;
+  verification_status?: string;
+  average_rating?: number;
+  review_count?: number;
+  duration?: number;
+  isActive?: boolean;
 }
 
 export interface Service {
   id: string;
   name: string;
-  description: string;
+  description?: string;
   category: string;
-  price: number;
-  duration: number;
-  isActive: boolean;
-  providers: Provider[];
+  imageUrl?: string;
+  price?: number;
+  duration?: number;
+  isActive?: boolean;
+  providers?: Provider[];
 }
 
 export interface ServiceCreateInput {
   name: string;
-  description: string;
+  description?: string;
   category: string;
-  price: number;
-  duration: number;
+  imageFile?: File | null;
+  price?: number;
+  duration?: number;
+  imageUrl?: string;
 }
 
-export interface ServiceUpdateInput extends Partial<ServiceCreateInput> {
-  isActive?: boolean;
-}
-
-// Add this helper type
-export type ServiceWithDefaults = {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
+export type ServiceWithDefaults = Service & {
   price: number;
   duration: number;
   isActive: boolean;
-  providers: Provider[];
 };
 
-// Add default values constant
-export const DEFAULT_SERVICE_VALUES = {
+export const DEFAULT_SERVICE_VALUES: ServiceWithDefaults = {
+  id: '',
+  name: '',
+  description: '',
+  category: '',
+  imageUrl: '',
   price: 0,
-  duration: 0,
-  isActive: false,
+  duration: 30,
+  isActive: true,
   providers: []
 };

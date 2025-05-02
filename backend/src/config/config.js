@@ -1,6 +1,8 @@
 // config/config.js
 require('dotenv').config();
 
+const API_URL = process.env.API_URL;
+
 module.exports = {
     JWT_SECRET: process.env.JWT_SECRET ,
     PORT: process.env.PORT ,
@@ -11,4 +13,5 @@ module.exports = {
         PASSWORD: process.env.DB_PASSWORD || '',
         DATABASE: process.env.DB_NAME || '',
     },
+    API_URL,
 };

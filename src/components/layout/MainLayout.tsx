@@ -1,6 +1,19 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, X, Home, Briefcase, Users, Calendar, User, LogIn, LayoutDashboard } from "lucide-react";
+import { 
+  Menu, 
+  X, 
+  Home, 
+  Briefcase, 
+  Users, 
+  Calendar, 
+  User, 
+  LogIn, 
+  LayoutDashboard,
+  Bell,
+  Settings,
+  LogOut
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -33,8 +46,14 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
       <header className="sticky top-0 z-50 bg-white shadow-md">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between py-4">
+            {/* Logo - changes link based on auth state */}
             <Link to={isAuthenticated ? "/userDashboard" : "/"} className="flex items-center space-x-2">
-              <span className="text-2xl font-display font-bold text-homehelp-900">HomeHelp</span>
+              {isAuthenticated && (
+                <LayoutDashboard className="h-6 w-6 text-homehelp-600" />
+              )}
+              <span className="text-2xl font-display font-bold text-homehelp-900">
+                {isAuthenticated ? "Client Dashboard" : "HomeHelp"}
+              </span>
             </Link>
 
             {/* Desktop Navigation */}
@@ -55,18 +74,38 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
               ))}
             </nav>
 
-            {/* Auth Buttons - Desktop */}
+            {/* Auth Buttons & User Actions - Desktop */}
             <div className="hidden md:flex items-center space-x-4">
               {isAuthenticated ? (
                 <>
+                  {/* Notification Button */}
+                  <Button variant="ghost" size="sm" className="text-homehelp-600 hover:text-homehelp-900">
+                    <Bell className="h-5 w-5" />
+                  </Button>
+                  
+                  {/* Settings Button */}
+                  <Link to="/settings">
+                    <Button variant="ghost" size="sm" className="text-homehelp-600 hover:text-homehelp-900">
+                      <Settings className="h-5 w-5" />
+                    </Button>
+                  </Link>
+
+                  {/* User Profile */}
                   <div className="flex items-center mr-4">
-                    <div className="w-8 h-8 rounded-full bg-homehelp-200 mr-2 flex items-center justify-center text-homehelp-900 font-medium">
+                    <div className="w-8 h-8 rounded-full bg-homehelp-100 mr-2 flex items-center justify-center text-homehelp-900 font-medium">
                       {user?.name?.charAt(0) || "U"}
                     </div>
                     <span className="text-sm font-medium text-homehelp-900">{user?.name || "User"}</span>
                   </div>
-                  <Button variant="destructive" size="sm" className="flex items-center space-x-1" onClick={logout}>
-                    <LogIn className="w-4 h-4 rotate-180" />
+                  
+                  {/* Logout Button */}
+                  <Button 
+                    variant="destructive" 
+                    size="sm" 
+                    className="flex items-center space-x-1" 
+                    onClick={logout}
+                  >
+                    <LogOut className="w-4 h-4" />
                     <span>Logout</span>
                   </Button>
                 </>
@@ -117,7 +156,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
                   </li>
                 ))}
                 
-                {/* Auth Buttons - Mobile */}
+                {/* Auth Buttons & User Actions - Mobile */}
                 {isAuthenticated ? (
                   <>
                     <li className="pt-2 border-t border-homehelp-100">
@@ -128,6 +167,32 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
                         <span className="font-medium text-homehelp-900">{user?.name || "User"}</span>
                       </div>
                     </li>
+                    
+                    {/* Added from UserHeader: Notifications */}
+                    <li>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start text-homehelp-600"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <Bell className="w-5 h-5 mr-2" />
+                        <span>Notifications</span>
+                      </Button>
+                    </li>
+                    
+                    {/* Added from UserHeader: Settings */}
+                    <li>
+                      <Link
+                        to="/settings"
+                        className="flex items-center space-x-3 p-2 rounded-md text-homehelp-600 hover:bg-homehelp-50"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <Settings className="w-5 h-5" />
+                        <span>Settings</span>
+                      </Link>
+                    </li>
+                    
+                    {/* Logout Button */}
                     <li>
                       <Button
                         onClick={() => {
@@ -137,7 +202,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
                         className="w-full justify-center"
                         variant="destructive"
                       >
-                        <LogIn className="w-5 h-5 mr-2 rotate-180" />
+                        <LogOut className="w-5 h-5 mr-2" />
                         <span>Logout</span>
                       </Button>
                     </li>

@@ -53,6 +53,57 @@ module.exports = {
     }
   },
 
+  updateProviderService: async (req, res) => {
+    try {
+      const db = req.app.locals.db;
+      const { providerId, serviceId } = req.params;
+      const { price, duration, isActive } = req.body;
+
+      // Validate inputs
+      if (!providerId || !serviceId) {
+        return res.status(400).json({ message: 'Provider ID and Service ID are required' });
+      }
+
+      // Check if provider_service exists
+      const [existing] = await db.query(
+        'SELECT * FROM provider_services WHERE provider_id = ? AND service_id = ?',
+        [providerId, serviceId]
+      );
+
+      if (existing.length === 0) {
+        return res.status(404).json({ message: 'Provider service not found' });
+      }
+
+      // Update provider_service
+      const [updateResult] = await db.query(
+        `UPDATE provider_services
+         SET price = ?, description = description, availability = availability, duration = ?, isActive = ?
+         WHERE provider_id = ? AND service_id = ?`,
+        [price || 0, duration || 30, isActive === 'true' || isActive === true ? 1 : 0, providerId, serviceId]
+      );
+
+      res.json({ message: 'Provider service updated successfully' });
+    } catch (error) {
+      console.error('Error updating provider service:', error);
+      res.status(500).json({ message: 'Error updating provider service' });
+    }
+  },
+
+  getServiceCategories: async (req, res) => {
+    try {
+      const db = req.app.locals.db;
+      const [categories] = await db.query(`
+        SELECT DISTINCT category AS name
+        FROM services
+        ORDER BY category ASC
+      `);
+      res.json(categories);
+    } catch (error) {
+      console.error('Error fetching service categories:', error);
+      res.status(500).json({ message: 'Error fetching service categories' });
+    }
+  },
+
   getAllUsers: async (req, res) => {
     try {
       const db = req.app.locals.db;
@@ -154,7 +205,8 @@ module.exports = {
         WHERE u.user_type = 'provider'
         ORDER BY u.created_at DESC
       `);
-
+      
+      console.log('Fethced Providers:',providers);
       res.json(providers);
     } catch (error) {
       console.error('Error fetching providers:', error);
@@ -237,30 +289,66 @@ module.exports = {
   },
 
   editService: async (req, res) => {
+    debug('Starting service update process...');
+    const startTime = Date.now();
     try {
       const db = req.app.locals.db;
       const serviceId = parseInt(req.params.id);
-      
+
+      debug('Service ID:', serviceId);
+      debug('Request body:', req.body);
+      debug('File:', req.file);
+
       // Validate serviceId
       if (!serviceId || isNaN(serviceId)) {
+        debug('Invalid service ID provided:', serviceId);
         return res.status(400).json({ message: 'Invalid service ID' });
       }
-      
-      const { name, description, category, image } = req.body;
-      
+
+      // Extract fields from req.body
+      const { name, description, category, price, duration, isActive } = req.body;
+
       // Validate required fields
       if (!name || !category) {
+        debug('Validation failed - missing fields:', {
+          nameProvided: !!name,
+          categoryProvided: !!category
+        });
         return res.status(400).json({ message: 'Name and category are required' });
       }
-      
+
       // Check if service exists
-      const [existingService] = await db.query('SELECT id FROM services WHERE id = ?', [serviceId]);
+      const [existingService] = await db.query('SELECT id, name FROM services WHERE id = ?', [serviceId]);
+      debug('Existing service check result:', existingService);
+
       if (existingService.length === 0) {
+        debug('Service not found with ID:', serviceId);
         return res.status(404).json({ message: 'Service not found' });
       }
-      
+
+      // Determine image path if file uploaded
+      let imagePath = null;
+      if (req.uploadedImagePath) {
+        imagePath = req.uploadedImagePath;
+      } else {
+        // If no new image uploaded, keep existing image
+        const [serviceData] = await db.query('SELECT image FROM services WHERE id = ?', [serviceId]);
+        imagePath = serviceData.length > 0 ? serviceData[0].image : null;
+      }
+
+      debug('Updating service with data:', {
+        id: serviceId,
+        newName: name,
+        category,
+        descriptionLength: description?.length,
+        imagePath,
+        price,
+        duration,
+        isActive
+      });
+
       // Update service
-      await db.query(`
+      const [updateResult] = await db.query(`
         UPDATE services
         SET name = ?,
             description = ?,
@@ -268,34 +356,66 @@ module.exports = {
             image = ?,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
-      `, [name, description, category, image, serviceId]);
-      
+      `, [name, description, category, imagePath, serviceId]);
+
+      debug('Update result:', {
+        affectedRows: updateResult.affectedRows,
+        changedRows: updateResult.changedRows,
+        info: updateResult.info
+      });
+
       // Fetch the updated service
       const [updatedService] = await db.query(`
         SELECT id, name, description, category, image, created_at, updated_at
         FROM services
         WHERE id = ?
       `, [serviceId]);
-      
+
+      debug('Updated service data:', updatedService[0]);
+      debug(`Service update completed in ${Date.now() - startTime}ms`);
+
       res.json({
         message: 'Service updated successfully',
-        service: updatedService[0]
+        service: updatedService[0],
+        debug: {
+          executionTime: `${Date.now() - startTime}ms`,
+          timestamp: new Date().toISOString()
+        }
       });
-      
+
     } catch (error) {
+      const executionTime = Date.now() - startTime;
+      debug('Error updating service:', {
+        error: error.message,
+        stack: error.stack,
+        executionTime: `${executionTime}ms`
+      });
       console.error('Error updating service:', error);
-      res.status(500).json({ message: 'Error updating service' });
+      res.status(500).json({
+        message: 'Error updating service',
+        error: process.env.NODE_ENV === 'development' ? {
+          message: error.message,
+          stack: error.stack,
+          executionTime: `${executionTime}ms`
+        } : undefined
+      });
     }
   },
 
   createService: async (req, res) => {
     try {
       const db = req.app.locals.db;
-      const { name, description, category, image } = req.body;
+      const { name, description, category } = req.body;
+
+      // Determine image path if file uploaded
+      let imagePath = null;
+      if (req.uploadedImagePath) {
+        imagePath = req.uploadedImagePath;
+      }
 
       const [result] = await db.query(
         'INSERT INTO services (name, description, category, image) VALUES (?, ?, ?, ?)',
-        [name, description, category, image]
+        [name, description, category, imagePath]
       );
 
       res.status(201).json({ 
@@ -303,7 +423,7 @@ module.exports = {
         name,
         description,
         category,
-        image 
+        image: imagePath
       });
     } catch (error) {
       console.error('Error creating service:', error);
@@ -509,21 +629,96 @@ module.exports = {
     try {
       await connection.beginTransaction();
       
-      const { id } = req.params;
-      const { verification_status, ...providerData } = req.body;
-
-      // Update provider basic info
-      await connection.query(
-        'UPDATE providers SET ? WHERE id = ?',
-        [providerData, id]
+      // The ID passed is the user_id 
+      const userId = req.params.id;
+      const requestData = req.body;
+      
+      // First, check if user exists
+      const [userResult] = await connection.query(
+        'SELECT id FROM users WHERE id = ?',
+        [userId]
       );
-
+      
+      if (!userResult || userResult.length === 0) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      // Find the associated provider record
+      const [providerResult] = await connection.query(
+        'SELECT id FROM providers WHERE user_id = ?',
+        [userId]
+      );
+      
+      if (!providerResult || providerResult.length === 0) {
+        return res.status(404).json({ message: 'Provider profile not found for this user' });
+      }
+      
+      const providerId = providerResult[0].id;
+      
+      // Handle basic user fields
+      const userFields = ['first_name', 'last_name', 'email', 'phone_number', 'profile_image'];
+      const userData = {};
+      
+      userFields.forEach(field => {
+        if (requestData[field] !== undefined) {
+          userData[field] = requestData[field];
+        }
+      });
+      
+      // Handle provider-specific fields
+      const providerFields = [
+        'business_name', 
+        'business_description', 
+        'location', 
+        'verification_status',
+        'availability_hours'
+      ];
+      
+      const providerData = {};
+      
+      // Extract top-level provider fields
+      providerFields.forEach(field => {
+        if (requestData[field] !== undefined) {
+          providerData[field] = requestData[field];
+        }
+      });
+      
+      // Handle nested provider object if it exists
+      if (requestData.provider && typeof requestData.provider === 'object') {
+        Object.keys(requestData.provider).forEach(key => {
+          if (providerFields.includes(key)) {
+            providerData[key] = requestData.provider[key];
+          }
+        });
+      }
+      
+      // JSON stringify objects that need it
+      if (providerData.availability_hours && typeof providerData.availability_hours === 'object') {
+        providerData.availability_hours = JSON.stringify(providerData.availability_hours);
+      }
+      
+      // Update user data if we have any
+      if (Object.keys(userData).length > 0) {
+        await connection.query(
+          'UPDATE users SET ? WHERE id = ?',
+          [userData, userId]
+        );
+      }
+      
+      // Update provider data
+      if (Object.keys(providerData).length > 0) {
+        await connection.query(
+          'UPDATE providers SET ? WHERE id = ?',
+          [providerData, providerId]
+        );
+      }
+  
       await connection.commit();
       res.json({ message: 'Provider updated successfully' });
     } catch (error) {
       await connection.rollback();
       console.error('Error updating provider:', error);
-      res.status(500).json({ message: 'Error updating provider' });
+      res.status(500).json({ message: 'Error updating provider', error: error.message });
     } finally {
       connection.release();
     }

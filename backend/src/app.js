@@ -13,6 +13,9 @@ const bookingRoutes = require('./routes/bookingRoutes');
 const authRoutes = require('./routes/authRoutes');
 const serviceRoutes = require('./routes/serviceRoutes');
 const clientRoutes = require('./routes/clientRoutes');
+const mpesaRoutes = require('./routes/mpesaRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
+const reviewRoutes = require('./routes/reviewRoutes');
 
 // Initialize Express app
 const app = express();
@@ -39,8 +42,8 @@ app.use((req, res, next) => {
   console.log('--------------------');
   console.log('Incoming request:');
   console.log('URL:', req.url);
-  console.log('Method:', req.method);
-  console.log('Headers:', req.headers);
+  // console.log('Method:', req.method);
+  // console.log('Headers:', req.headers);
   console.log('Body:', req.body);
   console.log('--------------------');
   next();
@@ -50,6 +53,9 @@ app.use(morgan('dev'));
 
 // Serve static files from 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Serve uploaded images statically
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // Database initialization
 async function initializeApp() {
@@ -85,7 +91,10 @@ async function initializeApp() {
   app.use('/api/bookings', bookingRoutes);
   app.use('/api/admin', adminRoutes);
   app.use('/api/clients', clientRoutes);
-  
+  app.use('/api/mpesa', mpesaRoutes);
+  app.use('/api/payments', paymentRoutes);
+  app.use('/api/reviews', reviewRoutes);
+
   // Add catch-all route for debugging
   app.use('*', (req, res) => {
     console.log('No route matched:', req.originalUrl);

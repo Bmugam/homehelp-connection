@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -5,17 +6,23 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Star, Phone, Mail, Calendar, ArrowLeft, ThumbsUp, Clock, Award, CheckCircle, User, Briefcase } from "lucide-react";
 
-import { getProviderById } from "../services/providerService";
+import { getProviderById, Service, Review } from "../services/providerService";
 import { getImageUrl } from "../utils/imageUtils";
-import type { Provider, Review } from "../types/provider";
+import type { Provider as ProviderType } from "../types/provider";
 import { ProviderListModal } from "../components/ProviderListModal";
-import type { Service } from "../pages/Services";
 
 interface ProviderDetailService extends Service {
-  id: number;
-  name: string;
-  price?: number;
+  service_id: number;
+  price?: number | string;
   description?: string;
+}
+
+interface Provider extends ProviderType {
+  experience?: string;
+  verification_status: string;
+  services: Service[];
+  reviewList?: Review[];
+  verified: boolean;
 }
 
 const ProviderDetail = () => {
@@ -44,6 +51,15 @@ const ProviderDetail = () => {
           image: data.profile_image || '/default-profile.png',
           rating: parseFloat(data.average_rating) || 0,
           reviews: data.review_count || 0,
+          reviewList: (data.reviews || []).map((review: any) => ({
+            id: review.id.toString(),
+            userId: review.user_id?.toString() || '',
+            userName: review.reviewer_name || 'Anonymous',
+            userInitials: review.reviewer_name ? review.reviewer_name.split(' ').map((n: string) => n[0]).join('') : 'AN',
+            rating: review.rating,
+            comment: review.comment,
+            createdAt: review.created_at,
+          })),
           services: data.services || [],
           verification_status: data.verification_status,
           experience: data.experience || '',
@@ -266,70 +282,35 @@ const ProviderDetail = () => {
               </h2>
               
               <div className="space-y-6">
-                {/* Sample reviews - in a real app, these would come from an API */}
-                <div className="border-b border-homehelp-100 pb-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-10 h-10 rounded-full bg-homehelp-200 flex items-center justify-center text-homehelp-700 font-medium">
-                        JD
+                {provider.reviewList && provider.reviewList.length > 0 ? (
+                  provider.reviewList.map((review) => (
+                    <div key={review.id} className="border-b border-homehelp-100 pb-6">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-10 h-10 rounded-full bg-homehelp-200 flex items-center justify-center text-homehelp-700 font-medium">
+                            {review.userInitials}
+                          </div>
+                          <span className="font-medium text-homehelp-900">{review.userName}</span>
+                        </div>
+                        <div className="flex text-amber-500">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              className={`w-4 h-4 ${i < review.rating ? 'fill-current' : 'text-homehelp-300'}`}
+                            />
+                          ))}
+                        </div>
                       </div>
-                      <span className="font-medium text-homehelp-900">John Doe</span>
-                    </div>
-                    <div className="flex text-amber-500">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star key={star} className="w-4 h-4 fill-current" />
-                      ))}
-                    </div>
-                  </div>
-                  <p className="text-homehelp-700">Excellent service! Very professional and thorough with their work. Would definitely recommend.</p>
-                  <div className="flex items-center gap-1 mt-2 text-sm text-homehelp-500">
-                    <Clock className="w-3 h-3" />
-                    <span>1 month ago</span>
-                  </div>
-                </div>
-                
-                <div className="border-b border-homehelp-100 pb-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-10 h-10 rounded-full bg-homehelp-200 flex items-center justify-center text-homehelp-700 font-medium">
-                        MS
+                      <p className="text-homehelp-700">{review.comment}</p>
+                      <div className="flex items-center gap-1 mt-2 text-sm text-homehelp-500">
+                        <Clock className="w-3 h-3" />
+                        <span>{new Date(review.createdAt).toLocaleDateString()}</span>
                       </div>
-                      <span className="font-medium text-homehelp-900">Mary Smith</span>
                     </div>
-                    <div className="flex text-amber-500">
-                      {[1, 2, 3, 4].map((star) => (
-                        <Star key={star} className="w-4 h-4 fill-current" />
-                      ))}
-                      <Star className="w-4 h-4 text-homehelp-300" />
-                    </div>
-                  </div>
-                  <p className="text-homehelp-700">Great service overall. Arrived on time and finished the job quickly. Only minor issue was some tools left behind.</p>
-                  <div className="flex items-center gap-1 mt-2 text-sm text-homehelp-500">
-                    <Clock className="w-3 h-3" />
-                    <span>2 months ago</span>
-                  </div>
-                </div>
-                
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-10 h-10 rounded-full bg-homehelp-200 flex items-center justify-center text-homehelp-700 font-medium">
-                        RJ
-                      </div>
-                      <span className="font-medium text-homehelp-900">Robert Johnson</span>
-                    </div>
-                    <div className="flex text-amber-500">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star key={star} className="w-4 h-4 fill-current" />
-                      ))}
-                    </div>
-                  </div>
-                  <p className="text-homehelp-700">Absolutely fantastic! The work was done perfectly and they were very respectful of my home. Will definitely use again.</p>
-                  <div className="flex items-center gap-1 mt-2 text-sm text-homehelp-500">
-                    <Clock className="w-3 h-3" />
-                    <span>3 months ago</span>
-                  </div>
-                </div>
+                  ))
+                ) : (
+                  <p className="text-homehelp-700">No reviews available.</p>
+                )}
               </div>
               
               <Button variant="outline" className="w-full mt-6">

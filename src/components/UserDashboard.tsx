@@ -8,7 +8,10 @@ import UserProfile from './user-dashboard/tabs/UserProfile';
 import UserBookings from './user-dashboard/tabs/UserBookings';
 import ServiceHistory from './user-dashboard/tabs/ServiceHistory';
 import AccountSettings from './user-dashboard/tabs/AccountSettings';
+import UserReviews from './user-dashboard/tabs/UserReviews';
 import { BookingType, UserDetailsType, BookingCreate, BookingUpdate } from './user-dashboard/types';
+import { Loader2 } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface HistoryItemType extends BookingType {
   rating: number;
@@ -18,11 +21,11 @@ const UserDashboard = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  
   const [upcomingBookings, setUpcomingBookings] = useState<BookingType[]>([]);
   const [serviceHistory, setServiceHistory] = useState<HistoryItemType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     const fetchBookings = async () => {
@@ -95,8 +98,9 @@ const UserDashboard = () => {
 
         setUpcomingBookings(processBookings(upcomingRes));
         setServiceHistory(processHistory(historyRes));
+        setError('');
       } catch (err) {
-        setError('Failed to load bookings');
+        setError('Failed to load bookings. Please try refreshing the page.');
         console.error(err);
       } finally {
         setLoading(false);
@@ -104,6 +108,18 @@ const UserDashboard = () => {
     };
 
     fetchBookings();
+  }, [refreshTrigger]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setSidebarOpen(window.innerWidth >= 768);
+    };
+    
+    handleResize();
+    
+    window.addEventListener('resize', handleResize);
+    
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const userDetails: UserDetailsType = {
@@ -117,9 +133,9 @@ const UserDashboard = () => {
 
   const handleUpdateProfile = async (updatedDetails: UserDetailsType) => {
     try {
-      // For now, just verify the user is authenticated since update endpoint isn't available
       await apiService.auth.getCurrentUser();
       console.log('Profile update simulation successful');
+      return true;
     } catch (err) {
       console.error('Failed to update profile', err);
       throw new Error('Failed to update profile. Please try again.');
@@ -136,6 +152,7 @@ const UserDashboard = () => {
       };
       await apiService.bookings.update(bookingId.toString(), updatePayload);
       setUpcomingBookings(prev => prev.map(b => b.id === bookingId ? { ...b, ...updatedData } : b));
+      return true;
     } catch (err) {
       console.error('Failed to update booking', err);
       throw err;
@@ -146,6 +163,7 @@ const UserDashboard = () => {
     try {
       await apiService.bookings.cancel(bookingId.toString());
       setUpcomingBookings(prev => prev.filter(b => b.id !== bookingId));
+      return true;
     } catch (err) {
       console.error('Failed to delete booking', err);
       throw err;
@@ -160,67 +178,107 @@ const UserDashboard = () => {
     console.log('Book again for service id:', serviceId);
   };
 
+  const refreshData = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div>Loading bookings...</div>
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
+        <Loader2 className="h-12 w-12 text-homehelp-600 animate-spin mb-4" />
+        <p className="text-gray-600 font-medium">Loading your dashboard...</p>
       </div>
     );
   }
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-red-500">{error}</div>
-      </div>
-    );
-  }
-
-    return (
-      <div className="min-h-screen bg-gray-50">
+  return (
+    <div className="min-h-screen bg-gray-100">
       <UserHeader 
         toggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
-        sidebarOpen={sidebarOpen} 
+        sidebarOpen={sidebarOpen}
+        userName={userDetails.name}
       />
       
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-6">
+        {error && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>
+              {error}
+              <button 
+                onClick={refreshData} 
+                className="ml-2 underline text-homehelp-700 hover:text-homehelp-800"
+              >
+                Refresh now
+              </button>
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <div className="flex flex-col md:flex-row gap-6">
-          <UserSidebar 
-            activeTab={activeTab} 
-            setActiveTab={setActiveTab} 
-            userDetails={userDetails} 
-          />
+          <div className={`md:block ${sidebarOpen ? 'block' : 'hidden'} transition-all duration-300 ease-in-out`}>
+            <UserSidebar 
+              activeTab={activeTab} 
+              setActiveTab={setActiveTab} 
+              userDetails={userDetails} 
+            />
+          </div>
           
-          <main className="flex-1">
+          <main className="flex-1 bg-white rounded-lg shadow-sm p-6">
             {activeTab === 'overview' && (
               <DashboardOverview 
                 userName={userDetails.name} 
-                setActiveTab={setActiveTab} 
+                setActiveTab={setActiveTab}
+                upcomingBookings={upcomingBookings.slice(0, 3)}
+                onRefresh={refreshData}
               />
             )}
             
             {activeTab === 'profile' && (
-              <UserProfile userDetails={userDetails} onUpdate={handleUpdateProfile} />
+              <UserProfile 
+                userDetails={userDetails} 
+                onUpdate={handleUpdateProfile} 
+              />
             )}
             
             {activeTab === 'bookings' && (
-              <UserBookings />
+              <UserBookings 
+                bookings={upcomingBookings}
+                onUpdate={handleUpdateBooking}
+                onDelete={handleDeleteBooking}
+                onRefresh={refreshData}
+              />
             )}
             
             {activeTab === 'history' && (
               <ServiceHistory 
                 serviceHistory={serviceHistory} 
                 onViewDetails={handleViewDetails} 
-                onBookAgain={handleBookAgain} 
+                onBookAgain={handleBookAgain}
+                onRefresh={refreshData}
               />
             )}
             
             {activeTab === 'settings' && (
-              <AccountSettings />
+              <AccountSettings 
+                userDetails={userDetails}
+              />
+            )}
+
+            {activeTab === 'reviews' && (
+              <UserReviews />
             )}
           </main>
         </div>
       </div>
+      
+      <footer className="mt-auto py-6 bg-white border-t border-gray-200">
+        <div className="container mx-auto px-4">
+          <div className="text-center text-sm text-gray-500">
+            <p>&copy; {new Date().getFullYear()} HomeHelp. All rights reserved.</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

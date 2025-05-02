@@ -52,4 +52,16 @@ router.post('/callback', async (req, res, next) => {
     }
 });
 
+// Cleanup stale payments endpoint
+router.post('/cleanup-stale', async (req, res, next) => {
+    try {
+        console.log('[MPESA-ROUTE] Running manual cleanup of stale payments');
+        await mpesaService.cleanupStalePendingPayments(req.app.locals.db);
+        res.json({ success: true, message: 'Cleanup completed successfully' });
+    } catch (error) {
+        console.error('[MPESA-ROUTE] Cleanup error:', error);
+        next(error);
+    }
+});
+
 module.exports = router;

@@ -30,13 +30,10 @@ exports.initiatePayment = async (req, res) => {
             accountReference
         });
 
-        // Store the payment attempt in the database
         const db = req.app.locals.db;
         
         try {
-            debug('Starting database transaction');
-            await db.query('START TRANSACTION');
-
+            // First initiate the STK push
             const response = await mpesaService.initiateSTKPush(
                 formattedPhone,
                 amount,
@@ -46,32 +43,33 @@ exports.initiatePayment = async (req, res) => {
 
             debug('STK Push response received', response);
 
-            // Store payment attempt
+            // Store only reference data for tracking
             await db.query(
-                `INSERT INTO payments (
-                    booking_id, 
-                    amount, 
-                    payment_method, 
-                    status, 
+                `INSERT INTO mpesa_requests (
+                    booking_id,
                     merchant_request_id,
-                    transaction_date,
+                    checkout_request_id,
+                    phone_number,
+                    amount,
                     created_at
-                ) VALUES (?, ?, 'mpesa', 'pending', ?, NOW(), NOW())`,
-                [bookingId, amount, response.MerchantRequestID]
+                ) VALUES (?, ?, ?, ?, ?, NOW())`,
+                [
+                    bookingId,
+                    response.MerchantRequestID,
+                    response.CheckoutRequestID,
+                    formattedPhone,
+                    amount
+                ]
             );
-
-            await db.query('COMMIT');
-            debug('Payment record created successfully');
 
             res.status(200).json({
                 success: true,
                 message: 'STK push initiated successfully',
                 data: response
             });
-        } catch (dbError) {
-            debug('Database error occurred', dbError);
-            await db.query('ROLLBACK');
-            throw dbError;
+        } catch (error) {
+            debug('Payment initiation failed', error);
+            throw error;
         }
     } catch (error) {
         debug('Payment initiation failed', { error: error.message, stack: error.stack });
@@ -98,52 +96,81 @@ exports.handleCallback = async (req, res) => {
         await db.query('START TRANSACTION');
         debug('Started database transaction');
 
+        // Get the mpesa request details
+        const [mpesaRequest] = await db.query(
+            `SELECT * FROM mpesa_requests 
+             WHERE merchant_request_id = ? AND processed = false`,
+            [result.merchantRequestId]
+        );
+
+        if (mpesaRequest.length === 0) {
+            debug('No matching unprocessed M-Pesa request found');
+            await db.query('COMMIT');
+            return res.status(404).json({
+                success: false,
+                message: 'No matching M-Pesa request found'
+            });
+        }
+
+        const request = mpesaRequest[0];
+
         if (result.success) {
-            debug('Payment successful, updating database');
-            // Update payment status
-            const [paymentRows] = await db.query(
-                `UPDATE payments 
-                 SET status = 'completed',
-                     mpesa_receipt = ?,
-                     transaction_date = ?,
-                     updated_at = NOW()
-                 WHERE merchant_request_id = ?
-                 RETURNING booking_id`,
-                [result.mpesaReceiptNumber, result.transactionDate, result.merchantRequestId]
+            debug('Payment successful, creating payment record');
+
+            // Create the payment record
+            await db.query(
+                `INSERT INTO payments (
+                    booking_id,
+                    amount,
+                    payment_method,
+                    status,
+                    merchant_request_id,
+                    mpesa_receipt,
+                    transaction_date,
+                    created_at,
+                    updated_at
+                ) VALUES (?, ?, 'mpesa', 'completed', ?, ?, ?, NOW(), NOW())`,
+                [
+                    request.booking_id,
+                    result.amount,
+                    result.merchantRequestId,
+                    result.mpesaReceiptNumber,
+                    result.transactionDate
+                ]
             );
 
-            if (paymentRows.length > 0) {
-                const bookingId = paymentRows[0].booking_id;
-                debug('Found booking to update', { bookingId });
-                
-                // Update booking status
+            // Update booking status
+            await db.query(
+                'UPDATE bookings SET status = ? WHERE id = ?',
+                ['confirmed', request.booking_id]
+            );
+
+            // Create notification for provider
+            const [providerInfo] = await db.query(
+                `SELECT p.user_id as provider_user_id 
+                 FROM bookings b
+                 JOIN providers p ON b.provider_id = p.id
+                 WHERE b.id = ?`,
+                [request.booking_id]
+            );
+
+            if (providerInfo.length > 0) {
+                debug('Creating provider notification', { providerId: providerInfo[0].provider_user_id });
                 await db.query(
-                    'UPDATE bookings SET status = \'confirmed\' WHERE id = ?',
-                    [bookingId]
+                    `INSERT INTO notifications (user_id, type, content)
+                     VALUES (?, 'payment_received', ?)`,
+                    [
+                        providerInfo[0].provider_user_id,
+                        `Payment received for booking #${request.booking_id}. Receipt: ${result.mpesaReceiptNumber}`
+                    ]
                 );
-                debug('Updated booking status to confirmed');
-
-                // Create notification for provider
-                const [providerInfo] = await db.query(
-                    `SELECT p.user_id as provider_user_id 
-                     FROM bookings b
-                     JOIN providers p ON b.provider_id = p.id
-                     WHERE b.id = ?`,
-                    [bookingId]
-                );
-
-                if (providerInfo.length > 0) {
-                    debug('Creating provider notification', { providerId: providerInfo[0].provider_user_id });
-                    await db.query(
-                        `INSERT INTO notifications (user_id, type, content)
-                         VALUES (?, 'payment_received', ?)`,
-                        [
-                            providerInfo[0].provider_user_id,
-                            `Payment received for booking #${bookingId}. Receipt: ${result.mpesaReceiptNumber}`
-                        ]
-                    );
-                }
             }
+
+            // Mark the request as processed
+            await db.query(
+                `UPDATE mpesa_requests SET processed = true WHERE id = ?`,
+                [request.id]
+            );
 
             await db.query('COMMIT');
             debug('Database transaction committed');
@@ -160,14 +187,36 @@ exports.handleCallback = async (req, res) => {
                 resultDesc: result.resultDesc 
             });
             
-            // Update payment status for failed transaction
+            // Create failed payment record
             await db.query(
-                `UPDATE payments 
-                 SET status = 'failed',
-                     failure_reason = ?,
-                     updated_at = NOW()
-                 WHERE merchant_request_id = ?`,
-                [result.resultDesc, result.merchantRequestId]
+                `INSERT INTO payments (
+                    booking_id,
+                    amount,
+                    payment_method,
+                    status,
+                    merchant_request_id,
+                    failure_reason,
+                    created_at,
+                    updated_at
+                ) VALUES (?, ?, 'mpesa', 'failed', ?, ?, NOW(), NOW())`,
+                [
+                    request.booking_id,
+                    request.amount,
+                    result.merchantRequestId,
+                    result.resultDesc || 'Payment failed'
+                ]
+            );
+
+            // Update booking status to cancelled
+            await db.query(
+                'UPDATE bookings SET status = ? WHERE id = ?',
+                ['cancelled', request.booking_id]
+            );
+
+            // Mark the request as processed
+            await db.query(
+                `UPDATE mpesa_requests SET processed = true WHERE id = ?`,
+                [request.id]
             );
 
             await db.query('COMMIT');

@@ -53,7 +53,9 @@ const paymentController = {
 
       // Get payments by client
       const [payments] = await db.query(
-        `SELECT p.id, p.amount, p.payment_method, p.status, p.created_at, b.date as booking_date, s.name as service_name, pmt.status as payment_status
+        `SELECT p.id, p.amount, p.payment_method, p.status, p.mpesa_receipt, 
+                p.transaction_date, p.created_at, b.date as booking_date, 
+                s.name as service_name
          FROM payments p
          JOIN bookings b ON p.booking_id = b.id
          JOIN services s ON b.service_id = s.id
@@ -140,6 +142,46 @@ const paymentController = {
     } catch (error) {
       console.error('Error deleting payment:', error);
       res.status(500).json({ message: 'Error deleting payment' });
+    }
+  },
+
+  getPaymentsByProvider: async (req, res) => {
+    const db = req.app.locals.db;
+    const user_id = req.user.id;
+
+    console.log('getPaymentsByProvider called with user_id:', user_id);
+
+    try {
+      // Get provider id
+      const [providerRows] = await db.query('SELECT id FROM providers WHERE user_id = ?', [user_id]);
+      if (providerRows.length === 0) {
+        console.log('getPaymentsByProvider provider not found for user_id:', user_id);
+        return res.status(404).json({ message: 'Provider not found' });
+      }
+      const provider_id = providerRows[0].id;
+
+      // Get payments by provider
+      const [payments] = await db.query(
+        `SELECT p.id, p.amount, p.payment_method, p.status, p.mpesa_receipt,
+                p.transaction_date, p.created_at, b.date as booking_date, 
+                s.name as service_name, 
+                u.first_name, u.last_name, u.phone_number
+         FROM payments p
+         JOIN bookings b ON p.booking_id = b.id
+         JOIN services s ON b.service_id = s.id
+         JOIN clients c ON b.client_id = c.id
+         JOIN users u ON c.user_id = u.id
+         WHERE b.provider_id = ?
+         ORDER BY p.created_at DESC`,
+        [provider_id]
+      );
+
+      console.log('getPaymentsByProvider success, payments count:', payments.length);
+
+      res.json(payments);
+    } catch (error) {
+      console.error('Error fetching payments by provider:', error);
+      res.status(500).json({ message: 'Error fetching payments by provider' });
     }
   }
 };

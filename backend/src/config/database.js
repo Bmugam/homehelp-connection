@@ -226,6 +226,26 @@ async function createTables() {
     `);
     console.log('Payments table created successfully');
 
+    // Mpesa Requests table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS mpesa_requests (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        booking_id INT NOT NULL,
+        merchant_request_id VARCHAR(255) NOT NULL,
+        checkout_request_id VARCHAR(255) NOT NULL,
+        phone_number VARCHAR(20) NOT NULL,
+        amount DECIMAL(10,2) NOT NULL,
+        processed BOOLEAN DEFAULT false,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
+        INDEX idx_merchant_request (merchant_request_id),
+        INDEX idx_checkout_request (checkout_request_id),
+        INDEX idx_processed (processed)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+    console.log('Mpesa Requests table created successfully');
+
     // Notifications table
     await connection.query(`
       CREATE TABLE IF NOT EXISTS notifications (

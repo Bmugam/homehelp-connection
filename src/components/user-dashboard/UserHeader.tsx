@@ -74,7 +74,7 @@ const UserHeader = ({ toggleSidebar, sidebarOpen }: UserHeaderProps) => {
               <Bell className="h-5 w-5" />
             </Button>
             
-            <Link to="/settings">
+            <Link to="/Settings">
               <Button variant="ghost" size="sm" className="text-homehelp-600 hover:text-homehelp-900">
                 <Settings className="h-5 w-5" />
               </Button>

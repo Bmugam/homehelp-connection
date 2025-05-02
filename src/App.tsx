@@ -10,7 +10,7 @@ import Services from "./pages/Services";
 import Providers from "./pages/Providers";
 import ProviderDetail from "./pages/ProviderDetail";
 import Bookings from "./pages/Bookings";
-import Profile from "./pages/Profile";
+import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import ProviderLogin from "./pages/ProviderLogin";
@@ -87,6 +87,16 @@ const App = () => (
                 </MainLayout>
               </ProtectedRoute>
             } />
+            
+            <Route path="/settings" element={
+              <ProtectedRoute allowedRoles={['client']}>
+                <MainLayout>
+                  <Settings />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
+
+            {/* Redirect to user dashboard if logged in */}
 
             {/* Provider Routes */}
             <Route path="/providers-dashboard/*" element={

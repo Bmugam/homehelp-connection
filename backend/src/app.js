@@ -16,6 +16,7 @@ const clientRoutes = require('./routes/clientRoutes');
 const mpesaRoutes = require('./routes/mpesaRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
+const mpesaService = require('./services/mpesaService');
 
 // Initialize Express app
 const app = express();
@@ -117,6 +118,15 @@ async function initializeApp() {
       res.sendFile(path.join(__dirname, 'client/build', 'index.html'));
     });
   }
+
+  // Schedule cleanup of stale payments every minute
+  setInterval(async () => {
+    try {
+        await mpesaService.cleanupStalePendingPayments(app.locals.db);
+    } catch (error) {
+        console.error('Failed to cleanup stale payments:', error);
+    }
+  }, 60000); // Run every minute
   
   // Start the server
   app.listen(PORT, () => {

@@ -5,9 +5,22 @@ const config = require('../config/config');
 
 const getProviderClients = async (req, res) => {
   const db = req.app.locals.db;
-  const providerId = req.params.providerId;
-
+  const userId = req.user.id; // Get the authenticated user ID
+  
   try {
+    // First, get the provider ID associated with this user
+    const [providerResult] = await db.query(
+      'SELECT id FROM providers WHERE user_id = ?', 
+      [userId]
+    );
+    
+    if (providerResult.length === 0) {
+      return res.status(403).json({ message: 'User is not registered as a provider' });
+    }
+    
+    const providerId = providerResult[0].id;
+    
+    // Now fetch the clients for this provider
     const [clients] = await db.query(`
       SELECT 
         u.id,
@@ -56,6 +69,7 @@ const getProviderClients = async (req, res) => {
     res.status(500).json({ message: 'Error fetching clients' });
   }
 };
+
 
 const updateClientStatus = async (req, res) => {
   const db = req.app.locals.db;
@@ -136,31 +150,6 @@ const getClientByUserId = async (req, res) => {
   }
 };
 
-const multer = require('multer');
-const path = require('path');
-
-// Upload profile image handler
-const uploadProfileImage = async (req, res) => {
-  try {
-    const db = req.app.locals.db;
-    const clientId = req.params.clientId;
-
-    if (!req.file) {
-      return res.status(400).json({ message: 'No file uploaded' });
-    }
-
-    // Save the file path relative to uploads folder
-    const profileImagePath = `/uploads/${req.file.path.split('uploads')[1].replace(/\\/g, '/')}`;
-
-    // Update client's profile_image in database
-    await db.query('UPDATE users SET profile_image = ? WHERE id = ?', [profileImagePath, clientId]);
-
-    res.status(200).json({ message: 'Profile image uploaded successfully', profile_image: profileImagePath });
-  } catch (error) {
-    console.error('Error uploading profile image:', error);
-    res.status(500).json({ message: 'Error uploading profile image' });
-  }
-};
 
 
 
@@ -211,6 +200,5 @@ module.exports = {
   toggleFavorite,
   updateClient,
   getClientByUserId,
-  uploadProfileImage,
   updateClientProfileImage
 };

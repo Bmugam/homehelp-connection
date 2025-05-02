@@ -631,7 +631,7 @@ const ServiceCard = ({
             </div>
             <div className="mt-2 md:mt-0">
               <span className="text-lg font-semibold text-homehelp-900">
-                ${service.price.toFixed(2)}
+                KSH {service.price.toFixed(2)}
               </span>
               <span className="text-sm text-homehelp-600">/service</span>
             </div>

@@ -341,56 +341,95 @@ const bookingController = {
 
   getProviderAppointments: async (req, res) => {
     const db = req.app.locals.db;
-    const provider_user_id = req.user.id;
+    const user_id = req.user.id;
 
     try {
-      // First get the provider_id from the providers table using user_id
+      // First verify the user is a provider
+      const [userTypeCheck] = await db.query(
+        'SELECT user_type FROM users WHERE id = ?',
+        [user_id]
+      );
+
+      if (!userTypeCheck.length || userTypeCheck[0].user_type !== 'provider') {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied. Your account is not registered as a provider.'
+        });
+      }
+
+      // Get provider_id and verify provider profile is complete
       const [provider] = await db.query(`
-        SELECT id as provider_id 
+        SELECT id as provider_id, business_name, verification_status 
         FROM providers 
         WHERE user_id = ?
-      `, [provider_user_id]);
+      `, [user_id]);
 
       if (!provider.length) {
         return res.status(404).json({
           success: false,
-          message: 'Provider not found'
+          message: 'Provider profile not found. Please complete your provider profile setup before viewing appointments.'
+        });
+      }
+
+      if (provider[0].verification_status === 'rejected') {
+        return res.status(403).json({
+          success: false,
+          message: 'Your provider account has not been approved. Please contact support for more information.'
         });
       }
 
       const providerId = provider[0].provider_id;
 
-      // Now get the appointments using provider_id
+      // Get appointments with client and service details
       const [appointments] = await db.query(`
         SELECT 
           b.id,
           CONCAT(u.first_name, ' ', u.last_name) as clientName,
+          u.profile_image as clientImg,
+          u.email as clientEmail,
+          u.phone_number as clientPhone,
           s.name as service,
           DATE_FORMAT(b.date, '%Y-%m-%d') as date,
           b.time_slot as time,
           b.location,
           b.status,
           ps.price,
-          c.user_id as client_user_id,
-          b.notes
+          b.notes,
+          c.user_id as client_user_id
         FROM bookings b
         JOIN clients c ON b.client_id = c.id
         JOIN users u ON c.user_id = u.id
         JOIN services s ON b.service_id = s.id
-        JOIN provider_services ps ON b.service_id = ps.service_id AND b.provider_id = ps.provider_id
+        LEFT JOIN provider_services ps ON (b.service_id = ps.service_id AND b.provider_id = ps.provider_id)
         WHERE b.provider_id = ?
         ORDER BY b.date DESC, b.time_slot ASC
       `, [providerId]);
 
-      res.json({
+      // Check if provider has any services
+      const [services] = await db.query(
+        'SELECT COUNT(*) as count FROM provider_services WHERE provider_id = ?',
+        [providerId]
+      );
+
+      const response = {
         success: true,
-        data: appointments
-      });
+        data: appointments.map(apt => ({
+          ...apt,
+          price: apt.price || 0
+        }))
+      };
+
+      // Add helpful message if no appointments and no services
+      if (appointments.length === 0 && services[0].count === 0) {
+        response.message = 'No appointments found. Try adding some services to your profile to start receiving bookings.';
+      }
+
+      res.json(response);
     } catch (error) {
       console.error('Error in getProviderAppointments:', error);
       res.status(500).json({
         success: false,
-        message: 'Error fetching appointments',
+        message: 'An error occurred while fetching your appointments. Please try again later.',
         error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }

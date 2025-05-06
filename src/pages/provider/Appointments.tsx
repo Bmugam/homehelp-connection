@@ -35,6 +35,12 @@ interface Appointment {
   clientImg?: string;
 }
 
+interface ApiResponse {
+  success: boolean;
+  data: Appointment[];
+  message?: string;
+}
+
 const ProviderAppointments = () => {
   const { user } = useAuth();
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
@@ -43,18 +49,23 @@ const ProviderAppointments = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchAppointments = async () => {
-    if (!user?.id) return;
     try {
       setLoading(true);
-      console.log('Fetching appointments for provider:', user.id);
+      setError(null);
+      console.log('Fetching appointments...');
       
-      const response = await apiService.providers.getAppointments(user.id);
-      console.log('Raw appointments response:', response);
+      const response = await apiService.providers.getAppointments();
+      const apiResponse = response.data as ApiResponse;
+      console.log('Raw appointments response:', apiResponse);
       
-      // Check if response.data exists and is an array
-      const appointmentsData = response?.data?.data || [];
+      if (!apiResponse.success) {
+        throw new Error(apiResponse.message || 'Failed to fetch appointments');
+      }
+      
+      const appointmentsData = apiResponse.data || [];
       console.log('Processed appointments data:', appointmentsData);
       
       setAppointments(
@@ -73,21 +84,25 @@ const ProviderAppointments = () => {
           clientImg: appointment.clientImg
         }))
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error details:', error);
-      toast.error('Failed to load appointments');
+      const errorMessage = error?.response?.data?.message || error.message || 'Failed to load appointments';
+      toast.error(errorMessage);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchAppointments();
+    if (user) {
+      fetchAppointments();
+    }
   }, [user]);
 
   const handleStatusUpdate = async (id: number, status: string) => {
     try {
-      await apiService.providers.updateAppointmentStatus(id, status, user.id);
+      await apiService.providers.updateAppointmentStatus(id, status);
       toast.success(`Appointment status updated to ${status}`);
       fetchAppointments();
     } catch (error) {
@@ -102,7 +117,7 @@ const ProviderAppointments = () => {
     }
 
     try {
-      await apiService.providers.deleteAppointment(id, user.id);
+      await apiService.providers.deleteAppointment(id);
       toast.success('Appointment deleted successfully');
       fetchAppointments();
     } catch (error) {
@@ -183,7 +198,13 @@ const ProviderAppointments = () => {
   if (!user) {
     return (
       <Card className="p-8 text-center">
-        <p className="text-homehelp-600">Please login to view appointments</p>
+        <div className="flex flex-col items-center gap-4">
+          <User className="h-12 w-12 text-gray-400" />
+          <div>
+            <h3 className="text-lg font-medium text-gray-900 mb-1">Authentication Required</h3>
+            <p className="text-gray-500">Please login to view your appointments</p>
+          </div>
+        </div>
       </Card>
     );
   }
@@ -191,18 +212,108 @@ const ProviderAppointments = () => {
   if (loading) {
     return (
       <Card className="p-8 text-center">
-        <p className="text-homehelp-600">Loading appointments...</p>
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-homehelp-600" />
+          <p className="text-homehelp-600">Loading your appointments...</p>
+        </div>
       </Card>
     );
   }
 
-  // Add a guard clause to check if appointments is an array
+  if (error) {
+    return (
+      <Card className="p-8">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <XCircle className="h-12 w-12 text-red-400" />
+          <div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Unable to Load Appointments</h3>
+            <p className="text-gray-500 mb-4">{error}</p>
+            {error.includes('provider profile') && (
+              <div className="space-y-4">
+                <p className="text-sm text-gray-600">To start accepting appointments, please complete your provider profile:</p>
+                <Button 
+                  onClick={() => window.location.href = '/provider/settings'}
+                  variant="default"
+                  size="sm"
+                >
+                  Complete Profile Setup
+                </Button>
+              </div>
+            )}
+            {!error.includes('provider profile') && (
+              <Button 
+                onClick={fetchAppointments}
+                variant="outline"
+                size="sm"
+              >
+                Try Again
+              </Button>
+            )}
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
   if (!Array.isArray(appointments)) {
-    console.error('Appointments is not an array:', appointments);
     return (
       <Card className="p-8 text-center">
-        <p className="text-homehelp-600">Error: Invalid appointments data</p>
+        <div className="flex flex-col items-center gap-4">
+          <XCircle className="h-12 w-12 text-red-400" />
+          <div>
+            <h3 className="text-lg font-medium text-gray-900 mb-1">Data Format Error</h3>
+            <p className="text-gray-500">There was an issue with the appointment data format. Please try again later.</p>
+          </div>
+          <Button 
+            onClick={fetchAppointments}
+            variant="outline"
+            size="sm"
+          >
+            Refresh
+          </Button>
+        </div>
       </Card>
+    );
+  }
+
+  if (appointments.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-homehelp-900">Appointments</h1>
+            <p className="text-homehelp-600">Manage your upcoming and past service appointments</p>
+          </div>
+        </div>
+        
+        <Card className="p-8">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <Calendar className="h-12 w-12 text-gray-400" />
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No Appointments Yet</h3>
+              <p className="text-gray-500 max-w-md mx-auto mb-4">
+                You haven't received any appointments yet. Make sure your services are set up and your profile is complete to start accepting bookings.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                <Button 
+                  onClick={() => window.location.href = '/provider/services'}
+                  variant="default"
+                  size="sm"
+                >
+                  Manage Services
+                </Button>
+                <Button 
+                  onClick={() => window.location.href = '/provider/settings'}
+                  variant="outline"
+                  size="sm"
+                >
+                  Update Profile
+                </Button>
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
     );
   }
 

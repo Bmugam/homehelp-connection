@@ -3,6 +3,7 @@ const router = express.Router();
 const upload = require('../config/multerConfig');
 const { processUploadedImage } = require('../middleware/imageHandler');
 const paymentController = require('../controllers/paymentController');
+const { authenticateToken } = require('../middleware/auth');
 const {
   getAllProviders,
   getProvidersByService,
@@ -136,6 +137,6 @@ router.put('/:id/upload-image', upload.single('image'), processUploadedImage, as
 });
 
 // New route to get payments by provider
-router.get('/:id/payments', paymentController.getPaymentsByProvider);
+router.get('/:id/payments', authenticateToken, paymentController.getPaymentsByProvider);
 
 module.exports = router;

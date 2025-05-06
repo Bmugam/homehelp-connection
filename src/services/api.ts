@@ -280,15 +280,21 @@ export const apiService = {
     getAll: () => api.get('/api/providers'),
     getById: (id: string) => api.get(`/api/providers/${id}`),  // fixed path here
     getByService: (serviceId: string) => api.get(`/api/providers/service/${serviceId}`),
-    getAppointments: (userId: string | number) => 
-      api.get<{ success: boolean; data: Appointment[] }>(`/api/bookings/provider/${userId}`),
-    updateAppointmentStatus: (id: number, status: string, userId: string | number) => 
-      api.post(`/api/bookings/${id}/status`, { status, userId }),
+    getAppointments: () => 
+      api.get<{ success: boolean; data: Appointment[]; message?: string }>('/api/bookings/provider')
+        .catch(error => {
+          if (error.response?.status === 404 && error.response?.data?.message) {
+            throw new Error(error.response.data.message);
+          }
+          throw error;
+        }),
+    updateAppointmentStatus: (id: number, status: string) => 
+      api.post(`/api/bookings/${id}/status`, { status }),
     createAppointment: (data: CreateAppointmentDTO) => 
       api.post('/api/bookings', data),
-    deleteAppointment: (appointmentId: number, userId: string | number) => 
-      api.request({ url: `/api/bookings/${appointmentId}`, method: 'DELETE', data: { userId } }),
-  
+    deleteAppointment: (appointmentId: number) => 
+      api.delete(`/api/bookings/${appointmentId}`),
+
     // Provider services endpoints updated with new interfaces
     getServices: (providerId: string | number) => 
       api.get<Service[]>(`/api/providers/${providerId}/services`),

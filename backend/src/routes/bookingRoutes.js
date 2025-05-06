@@ -49,10 +49,10 @@ router.get('/', authenticateToken, async (req, res, next) => {
   }
 });
 
-// Provider appointments
-router.get('/provider/:providerId', authenticateToken, async (req, res, next) => {
+// Provider appointments - updated to use authenticated user
+router.get('/provider', authenticateToken, async (req, res, next) => {
   try {
-    console.log('👤 Fetching provider appointments:', req.params.providerId);
+    console.log('👤 Fetching provider appointments for authenticated user');
     await bookingController.getProviderAppointments(req, res);
   } catch (error) {
     console.error('❌ Get provider appointments error:', error);

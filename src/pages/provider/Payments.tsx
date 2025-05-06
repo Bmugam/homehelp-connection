@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,82 +19,130 @@ import {
   Banknote,
   Wallet,
   LineChart,
-  Clock
+  Clock,
+  AlertCircle
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-
+import { apiService } from '@/services/api';
 import { Link } from 'react-router-dom';
+import { format } from 'date-fns';
 
 const ProviderPayments = () => {
   const { user } = useAuth();
   const [filterOpen, setFilterOpen] = useState(false);
-  
-  // Dummy data for payments
-  const payments = [
-    {
-      id: "PAY-8761",
-      client: "James Wilson",
-      avatar: "https://randomuser.me/api/portraits/men/32.jpg",
-      service: "Plumbing Repair",
-      date: "Apr 14, 2023",
-      amount: 150.00,
-      status: "completed",
-      method: "Credit Card"
-    },
-    {
-      id: "PAY-8752",
-      client: "Maria Johnson",
-      avatar: "https://randomuser.me/api/portraits/women/44.jpg",
-      service: "Electrical Work",
-      date: "Apr 10, 2023",
-      amount: 220.00,
-      status: "pending",
-      method: "Bank Transfer"
-    },
-    {
-      id: "PAY-8743",
-      client: "Robert Smith",
-      avatar: "https://randomuser.me/api/portraits/men/67.jpg",
-      service: "House Cleaning",
-      date: "Apr 5, 2023",
-      amount: 85.00,
-      status: "completed",
-      method: "Mobile Payment"
-    },
-    {
-      id: "PAY-8734",
-      client: "Sarah Thompson",
-      avatar: "https://randomuser.me/api/portraits/women/23.jpg",
-      service: "Bathroom Renovation",
-      date: "Mar 28, 2023",
-      amount: 450.00,
-      status: "failed",
-      method: "Credit Card"
-    },
-    {
-      id: "PAY-8725",
-      client: "Michael Brown",
-      avatar: "https://randomuser.me/api/portraits/men/45.jpg",
-      service: "Garden Maintenance",
-      date: "Mar 20, 2023",
-      amount: 120.00,
-      status: "completed",
-      method: "Cash"
-    }
-  ];
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [stats, setStats] = useState({
+    availableBalance: 0,
+    totalEarnings: 0,
+    pendingPayments: 0,
+    pendingCount: 0
+  });
 
-  // Monthly data for chart
-  const monthlyData = [
-    { month: "Jan", amount: 850 },
-    { month: "Feb", amount: 1200 },
-    { month: "Mar", amount: 1450 },
-    { month: "Apr", amount: 1025 },
-  ];
+  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [dateRange, setDateRange] = useState('all');
+  const [paymentMethod, setPaymentMethod] = useState('all');
+
+  useEffect(() => {
+    const fetchPayments = async () => {
+      if (!user?.id) return;
+      
+      try {
+        setLoading(true);
+        const response = await apiService.providers.getPayments(user.id);
+        const paymentsData = response.data;
+
+        // Convert payment.amount to number for each payment
+        const paymentsDataWithNumberAmount = paymentsData.map(payment => ({
+          ...payment,
+          amount: Number(payment.amount)
+        }));
+
+        setPayments(paymentsDataWithNumberAmount);
+
+        // Calculate stats
+        const total = paymentsDataWithNumberAmount.reduce((sum, payment) => sum + payment.amount, 0);
+        const pending = paymentsDataWithNumberAmount
+          .filter(payment => payment.status === 'pending')
+          .reduce((sum, payment) => sum + payment.amount, 0);
+        const pendingCount = paymentsDataWithNumberAmount.filter(payment => payment.status === 'pending').length;
+
+        setStats({
+          availableBalance: total - pending,
+          totalEarnings: total,
+          pendingPayments: pending,
+          pendingCount
+        });
+      } catch (err) {
+        setError(err.message || 'Failed to fetch payments');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPayments();
+  }, [user]);
+
+  // Filter payments based on search, status, and other filters
+  const filteredPayments = payments.filter(payment => {
+    const matchesSearch = (
+      payment.first_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      payment.last_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      payment.service_name?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const matchesStatus = selectedStatus === 'all' || payment.status === selectedStatus;
+    
+    const matchesMethod = paymentMethod === 'all' || payment.payment_method === paymentMethod;
+
+    let matchesDate = true;
+    if (dateRange !== 'all') {
+      const paymentDate = new Date(payment.created_at);
+      const now = new Date();
+      const monthAgo = new Date();
+      monthAgo.setMonth(now.getMonth() - 1);
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(now.getMonth() - 3);
+
+      if (dateRange === 'this-month') {
+        matchesDate = paymentDate >= monthAgo;
+      } else if (dateRange === 'last-3-months') {
+        matchesDate = paymentDate >= threeMonthsAgo;
+      }
+    }
+
+    return matchesSearch && matchesStatus && matchesMethod && matchesDate;
+  });
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin h-8 w-8 border-4 border-homehelp-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-homehelp-600">Loading payments...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="bg-red-100 p-4 rounded-full inline-block mb-4">
+            <AlertCircle className="h-8 w-8 text-red-600" />
+          </div>
+          <p className="text-red-600">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
-  
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold text-homehelp-900">Payments</h1>
@@ -118,9 +166,9 @@ const ProviderPayments = () => {
           <div className="flex justify-between items-start">
             <div>
               <p className="text-homehelp-600 text-sm mb-1">Available Balance</p>
-              <h3 className="text-2xl font-bold text-homehelp-900">$2,450.75</h3>
+              <h3 className="text-2xl font-bold text-homehelp-900">KSH {stats.availableBalance.toFixed(2)}</h3>
               <p className="text-xs text-green-600 mt-1">
-                +$450 this month
+                Ready to withdraw
               </p>
             </div>
             <div className="bg-green-100 p-3 rounded-full">
@@ -133,9 +181,9 @@ const ProviderPayments = () => {
           <div className="flex justify-between items-start">
             <div>
               <p className="text-homehelp-600 text-sm mb-1">Total Earnings</p>
-              <h3 className="text-2xl font-bold text-homehelp-900">$12,450.00</h3>
+              <h3 className="text-2xl font-bold text-homehelp-900">KSH {stats.totalEarnings.toFixed(2)}</h3>
               <p className="text-xs text-green-600 mt-1">
-                +15% from last month
+                All time earnings
               </p>
             </div>
             <div className="bg-blue-100 p-3 rounded-full">
@@ -148,9 +196,9 @@ const ProviderPayments = () => {
           <div className="flex justify-between items-start">
             <div>
               <p className="text-homehelp-600 text-sm mb-1">Pending Payments</p>
-              <h3 className="text-2xl font-bold text-homehelp-900">$520.00</h3>
+              <h3 className="text-2xl font-bold text-homehelp-900">KSH {stats.pendingPayments.toFixed(2)}</h3>
               <p className="text-xs text-yellow-600 mt-1">
-                3 transactions
+                {stats.pendingCount} transactions pending
               </p>
             </div>
             <div className="bg-yellow-100 p-3 rounded-full">
@@ -163,11 +211,11 @@ const ProviderPayments = () => {
           <div className="flex justify-between items-start">
             <div>
               <p className="text-homehelp-600 text-sm mb-1">Monthly Goal</p>
-              <h3 className="text-2xl font-bold text-homehelp-900">$5,000.00</h3>
+              <h3 className="text-2xl font-bold text-homehelp-900">KSH 100,000.00</h3>
               <div className="w-full mt-2">
-                <Progress value={68} className="h-2" />
+                <Progress value={(stats.totalEarnings / 100000) * 100} className="h-2" />
                 <p className="text-xs text-homehelp-600 mt-1">
-                  68% achieved
+                  {((stats.totalEarnings / 100000) * 100).toFixed(1)}% achieved
                 </p>
               </div>
             </div>
@@ -178,38 +226,10 @@ const ProviderPayments = () => {
         </Card>
       </div>
 
-      {/* Revenue Chart */}
-      <Card className="p-5 mb-8">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-homehelp-900">Monthly Revenue</h2>
-          <select className="p-2 border rounded-md text-sm">
-            <option value="last3months">Last 3 Months</option>
-            <option value="last6months">Last 6 Months</option>
-            <option value="lastyear">Last Year</option>
-          </select>
-        </div>
-        
-        <div className="h-64">
-          {/* This would be a chart in a real implementation */}
-          <div className="h-full flex items-end justify-around pb-6 pt-4">
-            {monthlyData.map((item, index) => (
-              <div key={index} className="flex flex-col items-center">
-                <div 
-                  className="bg-homehelp-600 w-16 rounded-t-md" 
-                  style={{ height: `${(item.amount / 1500) * 100}%` }}
-                ></div>
-                <div className="text-xs mt-2 text-homehelp-600">{item.month}</div>
-                <div className="text-sm font-medium text-homehelp-900">${item.amount}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </Card>
-
       {/* Tabs and Search Bar */}
       <div className="mb-6">
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-          <Tabs defaultValue="all" className="w-full sm:w-auto">
+          <Tabs defaultValue="all" className="w-full sm:w-auto" onValueChange={setSelectedStatus}>
             <TabsList>
               <TabsTrigger value="all">All Transactions</TabsTrigger>
               <TabsTrigger value="completed">Completed</TabsTrigger>
@@ -224,6 +244,8 @@ const ProviderPayments = () => {
               <Input 
                 placeholder="Search payments..." 
                 className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
             <Button 
@@ -244,8 +266,12 @@ const ProviderPayments = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               <div>
                 <label className="text-sm text-homehelp-700 mb-1 block">Date Range</label>
-                <select className="w-full p-2 border rounded-md">
-                  <option value="">All Time</option>
+                <select 
+                  className="w-full p-2 border rounded-md"
+                  value={dateRange}
+                  onChange={(e) => setDateRange(e.target.value)}
+                >
+                  <option value="all">All Time</option>
                   <option value="this-month">This Month</option>
                   <option value="last-month">Last Month</option>
                   <option value="last-3-months">Last 3 Months</option>
@@ -253,34 +279,23 @@ const ProviderPayments = () => {
               </div>
               <div>
                 <label className="text-sm text-homehelp-700 mb-1 block">Payment Method</label>
-                <select className="w-full p-2 border rounded-md">
-                  <option value="">All Methods</option>
-                  <option value="credit-card">Credit Card</option>
-                  <option value="bank-transfer">Bank Transfer</option>
+                <select 
+                  className="w-full p-2 border rounded-md"
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                >
+                  <option value="all">All Methods</option>
+                  <option value="mpesa">M-Pesa</option>
                   <option value="cash">Cash</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm text-homehelp-700 mb-1 block">Amount Range</label>
-                <select className="w-full p-2 border rounded-md">
-                  <option value="">Any Amount</option>
-                  <option value="under-100">Under $100</option>
-                  <option value="100-500">$100 - $500</option>
-                  <option value="over-500">Over $500</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm text-homehelp-700 mb-1 block">Service Type</label>
-                <select className="w-full p-2 border rounded-md">
-                  <option value="">All Services</option>
-                  <option value="plumbing">Plumbing</option>
-                  <option value="electrical">Electrical</option>
-                  <option value="cleaning">Cleaning</option>
+                  <option value="card">Card Payment</option>
                 </select>
               </div>
             </div>
             <div className="flex justify-end mt-4 space-x-2">
-              <Button variant="outline" size="sm">Reset</Button>
+              <Button variant="outline" size="sm" onClick={() => {
+                setDateRange('all');
+                setPaymentMethod('all');
+              }}>Reset</Button>
               <Button size="sm">Apply Filters</Button>
             </div>
           </Card>
@@ -332,40 +347,35 @@ const ProviderPayments = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-homehelp-100">
-              {payments.map((payment) => (
+              {filteredPayments.map((payment) => (
                 <tr key={payment.id} className="hover:bg-homehelp-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <div className="h-10 w-10 rounded-full overflow-hidden mr-3">
-                        <img 
-                          src={payment.avatar} 
-                          alt={payment.client}
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
                       <div>
-                        <div className="font-medium text-homehelp-900">{payment.client}</div>
+                        <div className="font-medium text-homehelp-900">
+                          {`${payment.first_name} ${payment.last_name}`}
+                        </div>
                         <div className="text-xs text-homehelp-500">{payment.id}</div>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm text-homehelp-700">{payment.service}</span>
+                    <span className="text-sm text-homehelp-700">{payment.service_name}</span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center text-sm text-homehelp-700">
                       <Calendar className="h-4 w-4 mr-1 text-homehelp-400" />
-                      {payment.date}
+                      {format(new Date(payment.created_at), 'MMM d, yyyy')}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center text-sm text-homehelp-700">
                       <CreditCard className="h-4 w-4 mr-1 text-homehelp-400" />
-                      {payment.method}
+                      {payment.payment_method}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-homehelp-900">
-                    ${payment.amount.toFixed(2)}
+                    KSH {payment.amount.toFixed(2)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -388,10 +398,12 @@ const ProviderPayments = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <Button variant="ghost" size="sm">
-                      <Download className="h-4 w-4 mr-1" />
-                      Receipt
-                    </Button>
+                    {payment.mpesa_receipt && (
+                      <Button variant="ghost" size="sm">
+                        <Download className="h-4 w-4 mr-1" />
+                        Receipt
+                      </Button>
+                    )}
                     <Button variant="ghost" size="sm">
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
@@ -405,7 +417,7 @@ const ProviderPayments = () => {
         {/* Pagination */}
         <div className="px-6 py-4 bg-white border-t border-homehelp-100 flex justify-between items-center">
           <div className="text-sm text-homehelp-600">
-            Showing <span className="font-medium">5</span> of <span className="font-medium">25</span> transactions
+            Showing <span className="font-medium">{filteredPayments.length}</span> of <span className="font-medium">{payments.length}</span> transactions
           </div>
           <div className="flex space-x-1">
             <Button variant="outline" size="sm" disabled>Previous</Button>

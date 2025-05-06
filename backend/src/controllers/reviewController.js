@@ -1,36 +1,43 @@
 const reviewController = {
   createReview: async (req, res) => {
     const db = req.app.locals.db;
-    const { bookingId, rating, comment } = req.body;
     const user_id = req.user.id;
+    const { bookingId, rating, comment } = req.body;
 
     try {
-      // First, get the client_id from the user_id
+      await db.query('START TRANSACTION');
+
+      // Get client ID for this user
       const [clientRows] = await db.query(
         'SELECT id FROM clients WHERE user_id = ?',
         [user_id]
       );
 
       if (clientRows.length === 0) {
+        await db.query('ROLLBACK');
         return res.status(404).json({ message: 'Client profile not found' });
       }
-      
+
       const client_id = clientRows[0].id;
 
-      // Verify booking exists and belongs to client
+      // Verify booking belongs to client
       const [bookingRows] = await db.query(
-        `SELECT b.id, b.provider_id, b.status 
+        `SELECT b.*, p.id as provider_id, s.name as service_name 
          FROM bookings b
+         JOIN providers p ON b.provider_id = p.id
+         JOIN services s ON b.service_id = s.id
          WHERE b.id = ? AND b.client_id = ?`,
         [bookingId, client_id]
       );
 
       if (bookingRows.length === 0) {
-        return res.status(404).json({ message: 'Booking not found or does not belong to you' });
+        await db.query('ROLLBACK');
+        return res.status(404).json({ message: 'Booking not found or unauthorized' });
       }
 
       // Check if booking is completed
       if (bookingRows[0].status !== 'completed') {
+        await db.query('ROLLBACK');
         return res.status(400).json({ message: 'Can only review completed bookings' });
       }
 
@@ -41,10 +48,9 @@ const reviewController = {
       );
 
       if (paymentRows.length === 0) {
+        await db.query('ROLLBACK');
         return res.status(400).json({ message: 'Payment required before reviewing this booking' });
       }
-
-      const provider_id = bookingRows[0].provider_id;
 
       // Check if review already exists for this booking
       const [existingReview] = await db.query(
@@ -53,58 +59,68 @@ const reviewController = {
       );
 
       if (existingReview.length > 0) {
+        await db.query('ROLLBACK');
         return res.status(409).json({ message: 'A review already exists for this booking' });
       }
 
-      // Insert review
+      // Create the review
       const [result] = await db.query(
         `INSERT INTO reviews (booking_id, client_id, provider_id, rating, comment, created_at)
          VALUES (?, ?, ?, ?, ?, NOW())`,
-        [bookingId, client_id, provider_id, rating, comment]
+        [bookingId, client_id, bookingRows[0].provider_id, rating, comment]
       );
 
-      // Update provider average rating
-      await updateProviderRating(db, provider_id);
+      // Update provider's average rating
+      await db.query(
+        `UPDATE providers p
+         SET average_rating = (
+           SELECT AVG(rating)
+           FROM reviews r
+           WHERE r.provider_id = p.id
+         )
+         WHERE id = ?`,
+        [bookingRows[0].provider_id]
+      );
+
+      // Create notification for provider
+      await db.query(
+        `INSERT INTO notifications (user_id, type, content)
+         SELECT user_id, 'new_review', ? 
+         FROM providers 
+         WHERE id = ?`,
+        [
+          `New ${rating}-star review for ${bookingRows[0].service_name}`,
+          bookingRows[0].provider_id
+        ]
+      );
+
+      await db.query('COMMIT');
 
       res.status(201).json({ 
-        message: 'Review created successfully', 
-        reviewId: result.insertId 
+        message: 'Review created successfully',
+        reviewId: result.insertId
       });
     } catch (error) {
+      await db.query('ROLLBACK');
       console.error('Error creating review:', error);
       res.status(500).json({ message: 'Error creating review' });
     }
   },
 
-  getReviewsByClient: async (req, res) => {
+  getReviewsForBooking: async (req, res) => {
     const db = req.app.locals.db;
-    const user_id = req.user.id;
+    const { bookingId } = req.params;
 
     try {
-      // Get client id
-      const [clientRows] = await db.query(
-        'SELECT id FROM clients WHERE user_id = ?', 
-        [user_id]
-      );
-      
-      if (clientRows.length === 0) {
-        return res.status(404).json({ message: 'Client profile not found' });
-      }
-      
-      const client_id = clientRows[0].id;
-
-      // Get reviews by client
       const [reviews] = await db.query(
-        `SELECT r.id, r.booking_id, r.rating, r.comment, r.created_at, 
-                s.name as service_name, s.category as service_category,
-                p.business_name as provider_name
+        `SELECT r.*, 
+                CONCAT(u.first_name, ' ', u.last_name) as client_name,
+                u.profile_image as client_image
          FROM reviews r
-         JOIN bookings b ON r.booking_id = b.id
-         JOIN services s ON b.service_id = s.id
-         JOIN providers p ON r.provider_id = p.id
-         WHERE r.client_id = ?
-         ORDER BY r.created_at DESC`,
-        [client_id]
+         JOIN clients c ON r.client_id = c.id
+         JOIN users u ON c.user_id = u.id
+         WHERE r.booking_id = ?`,
+        [bookingId]
       );
 
       res.json(reviews);
@@ -114,16 +130,45 @@ const reviewController = {
     }
   },
 
-  getReviewsByProvider: async (req, res) => {
+  getUserReviews: async (req, res) => {
     const db = req.app.locals.db;
-    const providerId = req.params.providerId;
+    const user_id = req.user.id;
 
     try {
-      // Get reviews for this provider
+      // Get all reviews for bookings where this user is the client
       const [reviews] = await db.query(
-        `SELECT r.id, r.rating, r.comment, r.created_at,
-                s.name as service_name, 
-                CONCAT(u.first_name, ' ', u.last_name) as client_name
+        `SELECT r.*,
+                s.name as service_name,
+                p.business_name as provider_name,
+                b.date as service_date
+         FROM reviews r
+         JOIN bookings b ON r.booking_id = b.id
+         JOIN services s ON b.service_id = s.id
+         JOIN providers p ON b.provider_id = p.id
+         JOIN clients c ON r.client_id = c.id
+         WHERE c.user_id = ?
+         ORDER BY r.created_at DESC`,
+        [user_id]
+      );
+
+      res.json(reviews);
+    } catch (error) {
+      console.error('Error fetching user reviews:', error);
+      res.status(500).json({ message: 'Error fetching reviews' });
+    }
+  },
+
+  getProviderReviews: async (req, res) => {
+    const db = req.app.locals.db;
+    const { providerId } = req.params;
+
+    try {
+      const [reviews] = await db.query(
+        `SELECT r.*,
+                CONCAT(u.first_name, ' ', u.last_name) as client_name,
+                u.profile_image as client_image,
+                s.name as service_name,
+                b.date as service_date
          FROM reviews r
          JOIN bookings b ON r.booking_id = b.id
          JOIN services s ON b.service_id = s.id
@@ -137,133 +182,9 @@ const reviewController = {
       res.json(reviews);
     } catch (error) {
       console.error('Error fetching provider reviews:', error);
-      res.status(500).json({ message: 'Error fetching provider reviews' });
-    }
-  },
-
-  updateReview: async (req, res) => {
-    const db = req.app.locals.db;
-    const reviewId = req.params.id;
-    const user_id = req.user.id;
-    const { rating, comment } = req.body;
-
-    try {
-      // Get client_id
-      const [clientRows] = await db.query(
-        'SELECT id FROM clients WHERE user_id = ?',
-        [user_id]
-      );
-      
-      if (clientRows.length === 0) {
-        return res.status(404).json({ message: 'Client profile not found' });
-      }
-      
-      const client_id = clientRows[0].id;
-
-      // Verify review belongs to client
-      const [reviewRows] = await db.query(
-        `SELECT r.id, r.provider_id FROM reviews r
-         WHERE r.id = ? AND r.client_id = ?`,
-        [reviewId, client_id]
-      );
-
-      if (reviewRows.length === 0) {
-        return res.status(404).json({ message: 'Review not found or unauthorized' });
-      }
-
-      const provider_id = reviewRows[0].provider_id;
-
-      // Update review
-      await db.query(
-        `UPDATE reviews SET rating = ?, comment = ?, updated_at = NOW() WHERE id = ?`,
-        [rating, comment, reviewId]
-      );
-
-      // Update provider average rating
-      await updateProviderRating(db, provider_id);
-
-      res.json({ message: 'Review updated successfully' });
-    } catch (error) {
-      console.error('Error updating review:', error);
-      res.status(500).json({ message: 'Error updating review' });
-    }
-  },
-
-  deleteReview: async (req, res) => {
-    const db = req.app.locals.db;
-    const reviewId = req.params.id;
-    const user_id = req.user.id;
-
-    try {
-      // Get client_id
-      const [clientRows] = await db.query(
-        'SELECT id FROM clients WHERE user_id = ?',
-        [user_id]
-      );
-      
-      if (clientRows.length === 0) {
-        return res.status(404).json({ message: 'Client profile not found' });
-      }
-      
-      const client_id = clientRows[0].id;
-
-      // Verify review belongs to client and get provider_id before deletion
-      const [reviewRows] = await db.query(
-        `SELECT r.id, r.provider_id FROM reviews r
-         WHERE r.id = ? AND r.client_id = ?`,
-        [reviewId, client_id]
-      );
-
-      if (reviewRows.length === 0) {
-        return res.status(404).json({ message: 'Review not found or unauthorized' });
-      }
-
-      const provider_id = reviewRows[0].provider_id;
-
-      // Delete review
-      await db.query(
-        `DELETE FROM reviews WHERE id = ?`, 
-        [reviewId]
-      );
-
-      // Update provider average rating
-      await updateProviderRating(db, provider_id);
-
-      res.json({ message: 'Review deleted successfully' });
-    } catch (error) {
-      console.error('Error deleting review:', error);
-      res.status(500).json({ message: 'Error deleting review' });
+      res.status(500).json({ message: 'Error fetching reviews' });
     }
   }
 };
-
-// Helper function to update provider's average rating
-async function updateProviderRating(db, providerId) {
-  try {
-    // Calculate new average rating
-    const [ratingResult] = await db.query(
-      `SELECT AVG(rating) as avg_rating, COUNT(*) as review_count 
-       FROM reviews 
-       WHERE provider_id = ?`,
-      [providerId]
-    );
-    
-    const avgRating = ratingResult[0].avg_rating || 0;
-    const reviewCount = ratingResult[0].review_count || 0;
-
-    // Update provider record
-    await db.query(
-      `UPDATE providers 
-       SET average_rating = ?, review_count = ? 
-       WHERE id = ?`,
-      [avgRating, reviewCount, providerId]
-    );
-    
-    return true;
-  } catch (error) {
-    console.error('Error updating provider rating:', error);
-    return false;
-  }
-}
 
 module.exports = reviewController;

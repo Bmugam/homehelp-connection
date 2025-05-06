@@ -101,7 +101,7 @@ const bookingController = {
     try {
       const user_id = req.user.id;
 
-      // First, get the client ID for this user
+      // Get the client ID for this user
       const [clientRows] = await db.query(
         'SELECT id FROM clients WHERE user_id = ?',
         [user_id]
@@ -113,7 +113,7 @@ const bookingController = {
 
       const client_id = clientRows[0].id;
 
-      // Get client's bookings with provider and service details and payment status
+      // Get bookings with payment status and review information
       const [bookings] = await db.query(`
         SELECT 
           b.id,
@@ -126,23 +126,46 @@ const bookingController = {
           b.location,
           b.notes,
           p.business_name as provider_name,
+          p.average_rating as provider_rating,
           s.name as service_name,
           b.created_at,
           b.updated_at,
-          CASE 
-            WHEN EXISTS (
-              SELECT 1 FROM payments pay 
-              WHERE pay.booking_id = b.id AND pay.status = 'paid'
-            ) THEN TRUE ELSE FALSE 
-          END AS is_paid
+          COALESCE(ps.price, 0) as price,
+          COALESCE(
+            (SELECT status 
+             FROM payments 
+             WHERE booking_id = b.id 
+             ORDER BY created_at DESC 
+             LIMIT 1
+            ), 'pending'
+          ) as payment_status,
+          EXISTS(
+            SELECT 1 
+            FROM reviews r 
+            WHERE r.booking_id = b.id
+          ) as has_review,
+          COALESCE(
+            (SELECT rating 
+             FROM reviews r 
+             WHERE r.booking_id = b.id
+            ), 0
+          ) as rating
         FROM bookings b
         JOIN providers p ON b.provider_id = p.id
         JOIN services s ON b.service_id = s.id
+        LEFT JOIN provider_services ps ON (ps.provider_id = p.id AND ps.service_id = s.id)
         WHERE b.client_id = ?
         ORDER BY b.date DESC, b.time_slot ASC
       `, [client_id]);
 
-      res.json(bookings);
+      // Transform bookings to include payment and review eligibility
+      const transformedBookings = bookings.map(booking => ({
+        ...booking,
+        is_paid: booking.payment_status === 'paid',
+        can_review: booking.status === 'completed' && booking.payment_status === 'paid' && !booking.has_review
+      }));
+
+      res.json(transformedBookings);
     } catch (error) {
       console.error('Error fetching user bookings:', error);
       res.status(500).json({ message: 'Error fetching bookings' });

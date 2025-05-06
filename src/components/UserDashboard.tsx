@@ -92,7 +92,10 @@ const UserDashboard = () => {
             .map(transformBooking)
             .map(b => ({
               ...b,
-              rating: 0
+              paymentStatus: b.payment?.status || 'pending',
+              canReview: b.payment?.status === 'paid' && !b.hasReview,
+              hasReview: !!b.hasReview,
+              rating: b.rating || 0
             }));
         };
 
@@ -178,6 +181,21 @@ const UserDashboard = () => {
     console.log('Book again for service id:', serviceId);
   };
 
+  const handleReviewService = async (bookingId: number) => {
+    try {
+      // Switch to the reviews tab and pass the booking ID
+      setActiveTab('reviews');
+      // You can use a global state or context to pass the bookingId to the Reviews tab
+      // For now, we'll update the URL with a query parameter
+      const url = new URL(window.location.href);
+      url.searchParams.set('reviewBooking', bookingId.toString());
+      window.history.pushState({}, '', url);
+    } catch (err) {
+      console.error('Failed to initiate review', err);
+      throw err;
+    }
+  };
+
   const refreshData = () => {
     setRefreshTrigger(prev => prev + 1);
   };
@@ -255,6 +273,7 @@ const UserDashboard = () => {
                 serviceHistory={serviceHistory} 
                 onViewDetails={handleViewDetails} 
                 onBookAgain={handleBookAgain}
+                onReview={handleReviewService}
                 onRefresh={refreshData}
               />
             )}

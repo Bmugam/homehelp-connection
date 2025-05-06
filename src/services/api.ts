@@ -176,7 +176,11 @@ interface Service extends ServiceCreate {
   updatedAt: string;
 }
 
-
+interface ReviewCreate {
+  bookingId: number;
+  rating: number;
+  comment: string;
+}
 
 // API service methods
 export const apiService = {
@@ -202,6 +206,10 @@ export const apiService = {
       api.put(`/api/reviews/${id}`, data),
     delete: (id: string) => 
       api.delete(`/api/reviews/${id}`),
+    getForBooking: (bookingId: string) => 
+      api.get(`/api/reviews/booking/${bookingId}`),
+    getUserReviews: () => 
+      api.get('/api/reviews/user'),
   },
 
   // Payment endpoints

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckCircle, Star, Calendar, ChevronLeft, ChevronRight, Clock, ArrowRight, FileText, RefreshCcw } from 'lucide-react';
+import { CheckCircle, Star, Calendar, ChevronLeft, ChevronRight, Clock, ArrowRight, FileText, RefreshCcw, CreditCard } from 'lucide-react';
 import { Button } from '../../ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../../ui/card';
 import { HistoryItemType } from '../types';
@@ -10,13 +10,15 @@ interface ServiceHistoryProps {
   serviceHistory: HistoryItemType[];
   onViewDetails: (id: number) => void;
   onBookAgain: (serviceId: number) => void;
+  onReview?: (id: number) => void;
   loading?: boolean;
 }
 
 const ServiceHistory = ({ 
   serviceHistory, 
   onViewDetails, 
-  onBookAgain, 
+  onBookAgain,
+  onReview,
   loading = false 
 }: ServiceHistoryProps) => {
   // Pagination state
@@ -70,6 +72,22 @@ const ServiceHistory = ({
         ))}
         <span className="ml-1 text-sm font-medium text-gray-700">{rating}/5</span>
       </div>
+    );
+  };
+
+  // Payment status badge
+  const getPaymentBadge = (status: string) => {
+    const styles = {
+      pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
+      paid: "bg-green-100 text-green-800 border-green-200",
+      failed: "bg-red-100 text-red-800 border-red-200"
+    };
+    
+    return (
+      <Badge className={`${styles[status] || styles.pending} flex items-center gap-1`}>
+        <CreditCard className="w-3 h-3" />
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </Badge>
     );
   };
 
@@ -135,8 +153,9 @@ const ServiceHistory = ({
                     <div className="flex-1">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
                         <h3 className="font-medium text-lg text-gray-800">{item.service}</h3>
-                        <div className="flex items-center">
-                          {renderRating(item.rating)}
+                        <div className="flex items-center gap-2">
+                          {getPaymentBadge(item.paymentStatus)}
+                          {item.hasReview && renderRating(item.rating)}
                         </div>
                       </div>
                       
@@ -173,6 +192,18 @@ const ServiceHistory = ({
                         <FileText className="h-3 w-3" />
                         <span>View Details</span>
                       </Button>
+
+                      {item.canReview && onReview && (
+                        <Button 
+                          size="sm"
+                          onClick={() => onReview(item.id)}
+                          className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700"
+                        >
+                          <Star className="h-3 w-3" />
+                          <span>Leave Review</span>
+                        </Button>
+                      )}
+
                       <Button 
                         size="sm" 
                         onClick={() => onBookAgain(item.id)}

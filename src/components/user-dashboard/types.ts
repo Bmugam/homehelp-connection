@@ -31,6 +31,9 @@ export interface BookingType {
 
 export interface HistoryItemType extends BookingType {
   rating: number;
+  paymentStatus: 'pending' | 'paid' | 'failed';
+  canReview: boolean;
+  hasReview: boolean;
 }
 
 export interface UserDetailsType {
